@@ -236,7 +236,6 @@ void EFXDrawerComponent::setupTab(ModuleTab& tab, const juce::String& name, cons
 void EFXDrawerComponent::setActiveTab(int index) {
     m_activeTab = index;
 
-    // Show/hide children based on active tab
     bool isEq   = (index == 1);
     bool isComp = (index == 2);
     bool isFlg  = (index == 3);
@@ -244,7 +243,6 @@ void EFXDrawerComponent::setActiveTab(int index) {
     bool isDist = (index == 5);
     bool isDly  = (index == 6);
 
-    // Auto-power on when selecting a tab if it was off
     auto ensurePower = [this](ModuleTab& tab) {
         if (!tab.powerBtn.getToggleState()) {
             tab.powerBtn.setToggleState(true, juce::sendNotification);
@@ -332,10 +330,9 @@ void EFXDrawerComponent::resized() {
     float tabWidth = static_cast<float>(tabBar.getWidth()) / static_cast<float>(numTabs);
 
     auto layoutTab = [tabBar, tabWidth](ModuleTab& tab, int idx) {
-        float tx = static_cast<float>(idx) * tabWidth;
+        float tx = static_cast<float>(tabBar.getX()) + static_cast<float>(idx) * tabWidth;
         auto tabArea = juce::Rectangle<float>(tx, static_cast<float>(tabBar.getY()), tabWidth, static_cast<float>(tabBar.getHeight())).toNearestInt();
 
-        // Left 16px is power LED toggle, right is text button
         tab.powerBtn.setBounds(tabArea.removeFromLeft(18).reduced(1));
         tab.selectBtn.setBounds(tabArea.reduced(1));
     };
@@ -350,10 +347,14 @@ void EFXDrawerComponent::resized() {
     // 2. Main Studio Rack Bay
     bounds.removeFromTop(4); // separator
     auto bayArea = bounds;
+    m_activeBayArea = bayArea.toFloat();
 
     if (m_activeTab == 1) { // EQ
-        // Top 85px is Live EQ response curve
-        bayArea.removeFromTop(90);
+        // Responsive curve height: scales with vertical height of bay
+        int curveH = std::clamp(static_cast<int>(bayArea.getHeight() * 0.46f), 70, 160);
+        m_eqCurveArea = bayArea.removeFromTop(curveH).toFloat().reduced(6.0f, 4.0f);
+        bayArea.removeFromTop(4);
+
         int kw = bayArea.getWidth() / 5;
         if (m_eqHpfKnob)         m_eqHpfKnob->setBounds(bayArea.removeFromLeft(kw));
         if (m_eqLowMidGainKnob)  m_eqLowMidGainKnob->setBounds(bayArea.removeFromLeft(kw));
@@ -361,8 +362,11 @@ void EFXDrawerComponent::resized() {
         if (m_eqAirGainKnob)     m_eqAirGainKnob->setBounds(bayArea.removeFromLeft(kw));
         if (m_eqOutGainKnob)     m_eqOutGainKnob->setBounds(bayArea);
     } else if (m_activeTab == 2) { // Compressor
-        // Top 70px is GR Meter
-        bayArea.removeFromTop(75);
+        // Responsive GR meter height
+        int meterH = std::clamp(static_cast<int>(bayArea.getHeight() * 0.38f), 55, 120);
+        m_compMeterArea = bayArea.removeFromTop(meterH).toFloat().reduced(6.0f, 4.0f);
+        bayArea.removeFromTop(4);
+
         int kw = bayArea.getWidth() / 5;
         if (m_compThreshKnob)  m_compThreshKnob->setBounds(bayArea.removeFromLeft(kw));
         if (m_compRatioKnob)   m_compRatioKnob->setBounds(bayArea.removeFromLeft(kw));
@@ -370,7 +374,7 @@ void EFXDrawerComponent::resized() {
         if (m_compReleaseKnob) m_compReleaseKnob->setBounds(bayArea.removeFromLeft(kw));
         if (m_compMakeupKnob)  m_compMakeupKnob->setBounds(bayArea);
     } else if (m_activeTab == 3) { // Flanger
-        bayArea.removeFromTop(20);
+        bayArea.removeFromTop(16);
         int kw = bayArea.getWidth() / 4;
         if (m_flangerRateKnob)     m_flangerRateKnob->setBounds(bayArea.removeFromLeft(kw));
         if (m_flangerDepthKnob)    m_flangerDepthKnob->setBounds(bayArea.removeFromLeft(kw));
@@ -379,7 +383,7 @@ void EFXDrawerComponent::resized() {
     } else if (m_activeTab == 4) { // Chorus / Haas
         auto topArea = bayArea.removeFromTop(32);
         m_chorusModeBox.setBounds(topArea.removeFromLeft(160).reduced(2));
-        bayArea.removeFromTop(10);
+        bayArea.removeFromTop(8);
 
         int mode = m_chorusModeBox.getSelectedId();
         int kw = bayArea.getWidth() / 3;
@@ -395,7 +399,7 @@ void EFXDrawerComponent::resized() {
     } else if (m_activeTab == 5) { // Saturation
         auto topArea = bayArea.removeFromTop(32);
         m_distModeBox.setBounds(topArea.removeFromLeft(160).reduced(2));
-        bayArea.removeFromTop(10);
+        bayArea.removeFromTop(8);
 
         int kw = bayArea.getWidth() / 3;
         if (m_distDriveKnob) m_distDriveKnob->setBounds(bayArea.removeFromLeft(kw));
@@ -404,7 +408,8 @@ void EFXDrawerComponent::resized() {
     } else if (m_activeTab == 6) { // Space Delay
         auto topArea = bayArea.removeFromTop(32);
         m_delayModeBox.setBounds(topArea.removeFromLeft(140).reduced(2));
-        if (m_delayToneKnob) m_delayToneKnob->setBounds(topArea.removeFromRight(80));
+        if (m_delayToneKnob) m_delayToneKnob->setBounds(topArea.removeFromRight(100));
+        bayArea.removeFromTop(8);
 
         int kw = bayArea.getWidth() / 5;
         if (m_delayTimeKnob)      m_delayTimeKnob->setBounds(bayArea.removeFromLeft(kw));
@@ -416,6 +421,8 @@ void EFXDrawerComponent::resized() {
 }
 
 void EFXDrawerComponent::paintEqCurve(juce::Graphics& g, juce::Rectangle<float> area) {
+    if (area.isEmpty()) return;
+
     // Studio dark glass screen
     g.setColour(FreePitchLookAndFeel::kBackgroundDark);
     g.fillRoundedRectangle(area, 4.0f);
@@ -432,12 +439,12 @@ void EFXDrawerComponent::paintEqCurve(juce::Graphics& g, juce::Rectangle<float> 
     auto drawFreqGrid = [&](float freq, const juce::String& label) {
         float frac = std::log10(freq / minF) / logRange;
         float gx = area.getX() + frac * area.getWidth();
-        g.setColour(FreePitchLookAndFeel::kPanelBorder.withAlpha(0.7f));
+        g.setColour(FreePitchLookAndFeel::kPanelBorder.withAlpha(0.6f));
         g.drawVerticalLine(static_cast<int>(gx), area.getY(), area.getBottom());
 
         g.setColour(FreePitchLookAndFeel::kTextDim);
         g.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 8.5f, juce::Font::plain));
-        g.drawText(label, static_cast<int>(gx + 2), static_cast<int>(area.getBottom() - 12), 30, 10, juce::Justification::centredLeft);
+        g.drawText(label, static_cast<int>(gx + 2), static_cast<int>(area.getBottom() - 13), 32, 11, juce::Justification::centredLeft);
     };
 
     drawFreqGrid(100.0f, "100");
@@ -513,6 +520,8 @@ void EFXDrawerComponent::paintEqCurve(juce::Graphics& g, juce::Rectangle<float> 
 }
 
 void EFXDrawerComponent::paintCompMeter(juce::Graphics& g, juce::Rectangle<float> area) {
+    if (area.isEmpty()) return;
+
     g.setColour(FreePitchLookAndFeel::kBackgroundDark);
     g.fillRoundedRectangle(area, 4.0f);
     g.setColour(FreePitchLookAndFeel::kPanelBorder);
@@ -557,36 +566,29 @@ void EFXDrawerComponent::paintCompMeter(juce::Graphics& g, juce::Rectangle<float
 }
 
 void EFXDrawerComponent::paint(juce::Graphics& g) {
-    auto bounds = getLocalBounds().toFloat().reduced(2.0f);
+    if (m_activeBayArea.isEmpty()) return;
 
     // Active Rack Bay Container
-    auto bayArea = bounds;
-    bayArea.removeFromTop(36.0f);
-
     g.setColour(FreePitchLookAndFeel::kPanelCard);
-    g.fillRoundedRectangle(bayArea, 5.0f);
+    g.fillRoundedRectangle(m_activeBayArea, 5.0f);
     g.setColour(FreePitchLookAndFeel::kPanelBorder);
-    g.drawRoundedRectangle(bayArea, 5.0f, 1.0f);
+    g.drawRoundedRectangle(m_activeBayArea, 5.0f, 1.0f);
 
     // Highlight active tab with glowing cyan bottom underline
-    float tabWidth = bounds.getWidth() / 6.0f;
-    float activeTabX = static_cast<float>(m_activeTab - 1) * tabWidth;
+    float tabWidth = static_cast<float>(getWidth() - 4) / 6.0f;
+    float activeTabX = 2.0f + static_cast<float>(m_activeTab - 1) * tabWidth;
     g.setColour(FreePitchLookAndFeel::kAccentCyan);
     g.fillRect(activeTabX + 2.0f, 32.0f, tabWidth - 4.0f, 2.5f);
 
-    // Specific Module Visualizations
+    // Specific Module Visualizations using stored responsive bounds
     if (m_activeTab == 1) { // EQ
-        auto curveArea = juce::Rectangle<float>(bayArea.getX() + 6.0f, bayArea.getY() + 6.0f,
-                                                bayArea.getWidth() - 12.0f, 78.0f);
-        paintEqCurve(g, curveArea);
+        paintEqCurve(g, m_eqCurveArea);
     } else if (m_activeTab == 2) { // Compressor
-        auto meterArea = juce::Rectangle<float>(bayArea.getX() + 6.0f, bayArea.getY() + 6.0f,
-                                                bayArea.getWidth() - 12.0f, 65.0f);
-        paintCompMeter(g, meterArea);
+        paintCompMeter(g, m_compMeterArea);
     } else if (m_activeTab == 4 && m_telemetry.haasPhaseWarning) {
         // Mono-compatibility caution badge
-        auto badgeArea = juce::Rectangle<float>(bayArea.getX() + 180.0f, bayArea.getY() + 6.0f,
-                                                bayArea.getWidth() - 190.0f, 24.0f);
+        auto badgeArea = juce::Rectangle<float>(m_activeBayArea.getX() + 180.0f, m_activeBayArea.getY() + 6.0f,
+                                                m_activeBayArea.getWidth() - 190.0f, 24.0f);
         g.setColour(FreePitchLookAndFeel::kIndicatorWarning.withAlpha(0.2f));
         g.fillRoundedRectangle(badgeArea, 3.0f);
         g.setColour(FreePitchLookAndFeel::kIndicatorWarning);

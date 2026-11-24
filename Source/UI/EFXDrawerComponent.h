@@ -37,6 +37,11 @@ private:
     ModuleTab m_distTab;
     ModuleTab m_delayTab;
 
+    // Responsive visualization bounds computed during resized()
+    juce::Rectangle<float> m_eqCurveArea;
+    juce::Rectangle<float> m_compMeterArea;
+    juce::Rectangle<float> m_activeBayArea;
+
     // --- Module Controls ---
     // EQ Controls
     std::unique_ptr<RotaryKnob> m_eqHpfKnob;

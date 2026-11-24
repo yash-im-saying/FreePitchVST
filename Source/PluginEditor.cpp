@@ -108,7 +108,7 @@ FreePitchAudioProcessorEditor::FreePitchAudioProcessorEditor(FreePitchAudioProce
     if (auto* param = m_processor.getAPVTS().getParameter(FreePitchID::retuneSpeed)) {
         m_retuneSpeedKnob = std::make_unique<RotaryKnob>(*param, "Retune Speed", "ms");
         m_retuneSpeedKnob->setHero(true);
-        m_retuneSpeedKnob->setTooltipText("Retune Speed (0 - 400 ms): Governs how fast FreePitch pulls vocals to the target note.\n• 0 ms: Instant Cher / T-Pain hard snap\n• 15-35 ms: Tight modern pop & trap tuning\n• 60-150 ms: Transparent natural vocal correction.");
+        m_retuneSpeedKnob->setTooltipText("Retune Speed (0 - 400 ms): Governs how fast FreePitch pulls vocals to the target note.\n- 0 ms: Instant Cher / T-Pain hard snap\n- 15-35 ms: Tight modern pop & trap tuning\n- 60-150 ms: Transparent natural vocal correction.");
         m_retuneSpeedAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
             m_processor.getAPVTS(), FreePitchID::retuneSpeed, m_retuneSpeedKnob->getSlider());
         addAndMakeVisible(m_retuneSpeedKnob.get());
@@ -253,7 +253,7 @@ void FreePitchAudioProcessorEditor::paint(juce::Graphics& g) {
     // 1. Deep Obsidian Studio Chassis
     g.fillAll(FreePitchLookAndFeel::kBackgroundDark);
 
-    // 2. Top Bar Panel
+    // 2. Top Bar Panel (50px)
     auto topBarArea = bounds.removeFromTop(50.0f);
     g.setColour(FreePitchLookAndFeel::kPanelDark);
     g.fillRect(topBarArea);
@@ -267,12 +267,15 @@ void FreePitchAudioProcessorEditor::paint(juce::Graphics& g) {
     g.setColour(FreePitchLookAndFeel::kAccentCyanGlow);
     g.fillEllipse(12.0f, 14.0f, 10.0f, 10.0f);
 
-    // 3. Main Workspace Sub-Panels
-    float bottomPianoHeight = 88.0f;
+    // 3. Responsive Proportional Grid
+    float bottomPianoHeight = std::clamp(bounds.getHeight() * 0.135f, 76.0f, 120.0f);
     auto contentArea = bounds.removeFromTop(bounds.getHeight() - bottomPianoHeight);
 
+    float totalW = contentArea.getWidth();
+    float leftWidth = std::clamp(totalW * 0.22f, 210.0f, 290.0f);
+    float rightWidth = std::clamp(totalW * 0.46f, 450.0f, 740.0f);
+
     // Left Bank Panel (Tuning Dynamics)
-    float leftWidth = 220.0f;
     auto leftPanel = contentArea.removeFromLeft(leftWidth).reduced(6.0f, 6.0f);
     g.setColour(FreePitchLookAndFeel::kPanelCard);
     g.fillRoundedRectangle(leftPanel, 6.0f);
@@ -280,7 +283,6 @@ void FreePitchAudioProcessorEditor::paint(juce::Graphics& g) {
     g.drawRoundedRectangle(leftPanel, 6.0f, 1.0f);
 
     // Right Bank Panel (Voice Tone & Modular EFX)
-    float rightWidth = 470.0f;
     auto rightPanel = contentArea.removeFromRight(rightWidth).reduced(6.0f, 6.0f);
     g.setColour(FreePitchLookAndFeel::kPanelCard);
     g.fillRoundedRectangle(rightPanel, 6.0f);
@@ -297,10 +299,10 @@ void FreePitchAudioProcessorEditor::paint(juce::Graphics& g) {
     // Section Header Badges
     auto drawHeader = [&](const juce::String& text, juce::Rectangle<float> panel, const juce::Colour& dotCol) {
         g.setColour(dotCol);
-        g.fillEllipse(panel.getX() + 12.0f, panel.getY() + 12.0f, 5.0f, 5.0f);
+        g.fillEllipse(panel.getX() + 12.0f, panel.getY() + 11.0f, 5.0f, 5.0f);
         g.setFont(juce::FontOptions(10.5f, juce::Font::bold));
         g.setColour(FreePitchLookAndFeel::kTextLight);
-        g.drawText(text, juce::Rectangle<float>(panel.getX() + 22.0f, panel.getY() + 7.0f, panel.getWidth() - 30.0f, 16.0f),
+        g.drawText(text, juce::Rectangle<float>(panel.getX() + 22.0f, panel.getY() + 6.0f, panel.getWidth() - 30.0f, 16.0f),
                    juce::Justification::centredLeft);
     };
 
@@ -342,41 +344,52 @@ void FreePitchAudioProcessorEditor::paint(juce::Graphics& g) {
 void FreePitchAudioProcessorEditor::resized() {
     auto bounds = getLocalBounds();
 
+    int totalW = bounds.getWidth();
+    int leftW = std::clamp(static_cast<int>(totalW * 0.22f), 210, 290);
+    int rightW = std::clamp(static_cast<int>(totalW * 0.46f), 450, 740);
+
     // 1. Top Header Bar (50px)
     auto topBar = bounds.removeFromTop(50).reduced(8, 6);
 
-    // Logo & Subtitle
-    auto titleArea = topBar.removeFromLeft(160);
-    m_titleLabel.setBounds(titleArea.removeFromTop(24).withTrimmedLeft(18));
-    m_subtitleLabel.setBounds(titleArea.withTrimmedLeft(18));
+    // Left Zone (width = leftW - 8): Logo, Subtitle, Version
+    auto leftTopArea = topBar.removeFromLeft(leftW - 8);
+    int logoW = std::clamp(leftTopArea.getWidth() - 44, 110, 150);
+    auto logoArea = leftTopArea.removeFromLeft(logoW);
+    m_titleLabel.setBounds(logoArea.removeFromTop(20).withTrimmedLeft(18));
+    m_subtitleLabel.setBounds(logoArea.withTrimmedLeft(18));
+    m_versionLabel.setBounds(leftTopArea.reduced(2, 4));
 
-    // Preset Controls (Center-Left)
-    auto presetArea = topBar.removeFromLeft(270);
-    m_prevPresetBtn.setBounds(presetArea.removeFromLeft(24).reduced(0, 4));
-    m_nextPresetBtn.setBounds(presetArea.removeFromRight(24).reduced(0, 4));
-    m_presetBox.setBounds(presetArea.removeFromLeft(150).reduced(2, 4));
-    m_savePresetBtn.setBounds(presetArea.removeFromLeft(48).reduced(2, 4));
-    m_abCompareBtn.setBounds(presetArea.reduced(2, 4));
+    // Right Zone (width = rightW - 8): Key, Scale, Lookahead, Latency, Master EFX
+    auto rightTopArea = topBar.removeFromRight(rightW - 8);
+    m_masterEfxToggle.setBounds(rightTopArea.removeFromRight(std::min(95, rightTopArea.getWidth() / 5)).reduced(2, 2));
+    m_latencyLabel.setBounds(rightTopArea.removeFromRight(std::min(130, rightTopArea.getWidth() / 4)).reduced(2, 2));
+    m_lookaheadToggle.setBounds(rightTopArea.removeFromRight(std::min(92, rightTopArea.getWidth() / 3)).reduced(2, 2));
+    m_scaleTypeBox.setBounds(rightTopArea.removeFromRight(std::min(115, rightTopArea.getWidth() / 2)).reduced(2, 3));
+    m_keyRootBox.setBounds(rightTopArea.reduced(2, 3));
 
-    // Right side items in top bar
-    m_masterEfxToggle.setBounds(topBar.removeFromRight(100).reduced(2, 4));
-    m_latencyLabel.setBounds(topBar.removeFromRight(150).reduced(4, 4));
-    m_lookaheadToggle.setBounds(topBar.removeFromRight(100).reduced(2, 4));
-    m_scaleTypeBox.setBounds(topBar.removeFromRight(130).reduced(3, 4));
-    m_keyRootBox.setBounds(topBar.removeFromRight(65).reduced(3, 4));
+    // Center Zone (Preset Controls): Center-aligned in whatever remains
+    auto centerTopArea = topBar;
+    int presetStripW = std::min(centerTopArea.getWidth() - 8, 290);
+    int presetStartX = centerTopArea.getX() + (centerTopArea.getWidth() - presetStripW) / 2;
+    auto presetStrip = juce::Rectangle<int>(presetStartX, centerTopArea.getY(), presetStripW, centerTopArea.getHeight());
 
-    // 2. Bottom Piano Keyboard (88px)
-    float bottomPianoHeight = 88.0f;
-    m_pianoKeyboard.setBounds(bounds.removeFromBottom(static_cast<int>(bottomPianoHeight)));
+    m_prevPresetBtn.setBounds(presetStrip.removeFromLeft(22).reduced(0, 3));
+    m_nextPresetBtn.setBounds(presetStrip.removeFromRight(22).reduced(0, 3));
+    m_abCompareBtn.setBounds(presetStrip.removeFromRight(46).reduced(2, 3));
+    m_savePresetBtn.setBounds(presetStrip.removeFromRight(46).reduced(2, 3));
+    m_presetBox.setBounds(presetStrip.reduced(2, 3));
+
+    // 2. Bottom Piano Keyboard (Responsive Height: ~13.5% of window height)
+    int pianoH = std::clamp(static_cast<int>(bounds.getHeight() * 0.135f), 76, 120);
+    m_pianoKeyboard.setBounds(bounds.removeFromBottom(pianoH));
 
     // 3. Main 3-Column Content Zone
     auto contentArea = bounds;
-    int leftWidth = 220;
-    auto leftArea = contentArea.removeFromLeft(leftWidth).reduced(10, 10);
+    auto leftArea = contentArea.removeFromLeft(leftW).reduced(10, 10);
     leftArea.removeFromTop(26); // Header title margin
 
     // Left Knobs (Hero Retune Speed on top, Humanize, Flex-Tune)
-    int heroHeight = static_cast<int>(leftArea.getHeight() * 0.44f);
+    int heroHeight = static_cast<int>(leftArea.getHeight() * 0.42f);
     if (m_retuneSpeedKnob) m_retuneSpeedKnob->setBounds(leftArea.removeFromTop(heroHeight));
 
     int medHeight = leftArea.getHeight() / 2;
@@ -384,20 +397,29 @@ void FreePitchAudioProcessorEditor::resized() {
     if (m_flexTuneKnob) m_flexTuneKnob->setBounds(leftArea);
 
     // Right Area (Tone Knobs + Modular EFX Rack)
-    int rightWidth = 470;
-    auto rightArea = contentArea.removeFromRight(rightWidth).reduced(10, 10);
+    auto rightArea = contentArea.removeFromRight(rightW).reduced(10, 10);
     rightArea.removeFromTop(26); // Header title margin
 
     // Top Tone Row (Pitch Shift, Preserve Toggle, Formant Shift)
-    auto toneRow = rightArea.removeFromTop(94);
+    int toneRowH = std::clamp(static_cast<int>(rightArea.getHeight() * 0.24f), 86, 120);
+    auto toneRow = rightArea.removeFromTop(toneRowH);
     int toneKnobWidth = toneRow.getWidth() / 3;
 
     if (m_pitchShiftKnob) m_pitchShiftKnob->setBounds(toneRow.removeFromLeft(toneKnobWidth));
 
     auto formantsCenter = toneRow.removeFromLeft(toneKnobWidth);
-    m_formantsTitleLabel.setBounds(formantsCenter.removeFromTop(20));
-    m_formantsToggle.setBounds(formantsCenter.removeFromTop(32).reduced(12, 0));
-    m_formantsSubLabel.setBounds(formantsCenter.removeFromTop(18));
+    int fLabelH = 15;
+    int fToggleH = 26;
+    int fSubH = 14;
+    int fTotal = fLabelH + fToggleH + fSubH + 4;
+    int fStartY = std::max(0, (formantsCenter.getHeight() - fTotal) / 2);
+    m_formantsTitleLabel.setBounds(formantsCenter.getX(), formantsCenter.getY() + fStartY, formantsCenter.getWidth(), fLabelH);
+
+    int toggleW = std::min(96, formantsCenter.getWidth() - 8);
+    int toggleX = formantsCenter.getX() + (formantsCenter.getWidth() - toggleW) / 2;
+    m_formantsToggle.setBounds(toggleX, formantsCenter.getY() + fStartY + fLabelH + 2, toggleW, fToggleH);
+
+    m_formantsSubLabel.setBounds(formantsCenter.getX(), formantsCenter.getY() + fStartY + fLabelH + fToggleH + 4, formantsCenter.getWidth(), fSubH);
 
     if (m_formantShiftKnob) m_formantShiftKnob->setBounds(toneRow);
 
@@ -410,7 +432,7 @@ void FreePitchAudioProcessorEditor::resized() {
     centerArea.removeFromTop(26); // Header title margin
 
     // Bottom controls in center area
-    auto centerBottom = centerArea.removeFromBottom(72);
+    auto centerBottom = centerArea.removeFromBottom(70);
     auto vocalRow = centerBottom.removeFromTop(28);
     m_vocalModeBox.setBounds(vocalRow.removeFromLeft(vocalRow.getWidth() / 2).reduced(4, 1));
     m_choosyTrackingToggle.setBounds(vocalRow.reduced(4, 1));

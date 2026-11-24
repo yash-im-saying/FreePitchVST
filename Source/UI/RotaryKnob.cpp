@@ -19,7 +19,7 @@ RotaryKnob::RotaryKnob(juce::RangedAudioParameter& param, const juce::String& ti
     m_titleLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(m_titleLabel);
 
-    m_valueLabel.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 11.5f, juce::Font::bold));
+    m_valueLabel.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 11.0f, juce::Font::bold));
     m_valueLabel.setColour(juce::Label::textColourId, FreePitchLookAndFeel::kTextWhite);
     m_valueLabel.setJustificationType(juce::Justification::centred);
     addAndMakeVisible(m_valueLabel);
@@ -38,7 +38,7 @@ void RotaryKnob::setAccentAmber(bool isAmber) {
 void RotaryKnob::setHero(bool isHero) {
     m_isHero = isHero;
     m_titleLabel.setFont(juce::FontOptions(isHero ? 11.5f : 10.5f, juce::Font::bold));
-    m_valueLabel.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), isHero ? 13.0f : 11.5f, juce::Font::bold));
+    m_valueLabel.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), isHero ? 12.5f : 11.0f, juce::Font::bold));
     m_titleLabel.setColour(juce::Label::textColourId, isHero ? FreePitchLookAndFeel::kTextLight : FreePitchLookAndFeel::kTextMuted);
     resized();
 }
@@ -52,17 +52,32 @@ void RotaryKnob::setTooltipText(const juce::String& text) {
 
 void RotaryKnob::resized() {
     auto bounds = getLocalBounds();
-    int titleHeight = m_isHero ? 20 : 16;
-    int valueHeight = m_isHero ? 22 : 18;
+    int titleHeight = m_isHero ? 18 : 15;
+    int valueHeight = m_isHero ? 20 : 16;
+    int spacing = 3;
 
-    m_titleLabel.setBounds(bounds.removeFromTop(titleHeight));
-    m_valueLabel.setBounds(bounds.removeFromBottom(valueHeight));
-    m_slider.setBounds(bounds.reduced(m_isHero ? 2 : 1));
+    // Available space for the rotary dial
+    int availH = bounds.getHeight() - (titleHeight + valueHeight + spacing * 2);
+    int availW = bounds.getWidth() - 4;
+
+    // Keep dial proportional and square
+    int dialSize = std::max(20, std::min(availW, availH));
+
+    int totalH = titleHeight + dialSize + valueHeight + spacing * 2;
+    int startY = std::max(0, (bounds.getHeight() - totalH) / 2);
+    int startX = (bounds.getWidth() - dialSize) / 2;
+
+    m_titleLabel.setBounds(0, startY, bounds.getWidth(), titleHeight);
+    m_slider.setBounds(startX, startY + titleHeight + spacing, dialSize, dialSize);
+
+    int valW = std::min(bounds.getWidth() - 4, dialSize + 28);
+    int valX = (bounds.getWidth() - valW) / 2;
+    m_valueLabel.setBounds(valX, startY + titleHeight + dialSize + spacing * 2, valW, valueHeight);
 }
 
 void RotaryKnob::paint(juce::Graphics& g) {
-    // Subtle value badge container on bottom
-    auto valArea = m_valueLabel.getBounds().toFloat().reduced(2.0f, 1.0f);
+    // Subtle inset value badge container on bottom
+    auto valArea = m_valueLabel.getBounds().toFloat().reduced(1.0f, 0.5f);
     g.setColour(FreePitchLookAndFeel::kPanelDark);
     g.fillRoundedRectangle(valArea, 3.0f);
     g.setColour(FreePitchLookAndFeel::kPanelBorder);
