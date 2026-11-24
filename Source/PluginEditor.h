@@ -30,6 +30,7 @@ private:
     juce::Label m_titleLabel;
     juce::Label m_subtitleLabel;
     juce::Label m_versionLabel;
+    juce::TextButton m_themeToggleBtn { "DARK" };
 
     // Presets
     juce::TextButton m_prevPresetBtn { "<" };
@@ -89,6 +90,7 @@ private:
     // --- Bottom Piano Keyboard ---
     PianoKeyboardComponent m_pianoKeyboard;
 
+    void updateThemeUI();
     void updatePresetBox();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(FreePitchAudioProcessorEditor)

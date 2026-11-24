@@ -4,36 +4,97 @@
 
 class FreePitchLookAndFeel : public juce::LookAndFeel_V4 {
 public:
+    enum class ThemeMode {
+        Dark,
+        Light
+    };
+
+    struct ThemePalette {
+        juce::Colour bgBase;             // Main chassis background
+        juce::Colour panelRaised;        // Raised panel / card surface
+        juce::Colour panelSunken;        // Inset well / recessed socket
+        juce::Colour panelBorder;        // Subtle perimeter frame
+        juce::Colour panelBorderLight;   // Top/left highlight frame
+        juce::Colour shadowDark;         // Ambient drop shadow (bottom-right)
+        juce::Colour shadowLight;        // Specular highlight (top-left)
+        juce::Colour innerShadowDark;    // Inset socket shadow (top-left)
+        juce::Colour innerShadowLight;   // Inset socket highlight (bottom-right)
+
+        // Text
+        juce::Colour textPrimary;        // Hero text / values
+        juce::Colour textSecondary;      // Labels / titles
+        juce::Colour textMuted;          // Subdued / descriptions
+        juce::Colour textDim;            // Disabled / inactive
+
+        // Accents & Hardware LEDs
+        juce::Colour accentCyan;         // Primary neon cyan (pitch / active)
+        juce::Colour accentCyanGlow;     // Primary halo
+        juce::Colour accentAmber;        // Secondary gold/amber (quantize / correction)
+        juce::Colour accentAmberGlow;    // Secondary halo
+        juce::Colour indicatorInTune;    // Emerald green (in-tune / powered ON)
+        juce::Colour indicatorSharp;     // Orange
+        juce::Colour indicatorFlat;      // Sky blue
+        juce::Colour indicatorWarning;   // Crimson alert
+
+        // Knobs & Hardware
+        juce::Colour knobCapTop;         // Metallic dial top reflection
+        juce::Colour knobCapBottom;      // Metallic dial bottom shade
+        juce::Colour knobRim;            // Machined knurl perimeter rim
+        juce::Colour knobRimHighlight;   // Specular rim reflection
+        juce::Colour glassGlare;         // Specular glass reflection for HUD lens
+    };
+
     FreePitchLookAndFeel();
     ~FreePitchLookAndFeel() override = default;
 
-    // Classic Studio Pitch Correction Palette
-    static inline const juce::Colour kBackgroundDark    = juce::Colour(0xFF0C0E12); // Deep obsidian chassis
-    static inline const juce::Colour kPanelDark         = juce::Colour(0xFF13161C); // Studio rack bay surface
-    static inline const juce::Colour kPanelCard         = juce::Colour(0xFF191D26); // Elevated card container
-    static inline const juce::Colour kPanelCardHover    = juce::Colour(0xFF202531); // Hover card
-    static inline const juce::Colour kPanelBorder       = juce::Colour(0xFF282F3D); // Hairline frame
-    static inline const juce::Colour kPanelBorderLight  = juce::Colour(0xFF3B4559); // Highlight frame
-    static inline const juce::Colour kPanelBorderGlow   = juce::Colour(0x6600D2FF); // Cyan glow border
+    // Theme Management
+    void setThemeMode(ThemeMode mode);
+    ThemeMode getThemeMode() const { return m_themeMode; }
+    bool isDarkTheme() const { return m_themeMode == ThemeMode::Dark; }
 
-    static inline const juce::Colour kTextWhite         = juce::Colour(0xFFF8FAFC); // Crisp white
-    static inline const juce::Colour kTextLight         = juce::Colour(0xFFCBD5E1); // Clean slate
-    static inline const juce::Colour kTextMuted         = juce::Colour(0xFF8B9BB4); // Technical grey
-    static inline const juce::Colour kTextDim           = juce::Colour(0xFF4C566A); // Subdued text
+    static const ThemePalette& getPalette() { return s_currentPalette; }
+    static bool isDark() { return s_themeMode == ThemeMode::Dark; }
 
-    static inline const juce::Colour kAccentCyan        = juce::Colour(0xFF00D2FF); // Neon cyan (live pitch / primary)
-    static inline const juce::Colour kAccentCyanGlow    = juce::Colour(0x4000D2FF); // Soft cyan halo
-    static inline const juce::Colour kAccentAmber       = juce::Colour(0xFFF59E0B); // Studio amber/gold (quantize / correction)
-    static inline const juce::Colour kAccentAmberGlow   = juce::Colour(0x40F59E0B); // Soft amber halo
-    static inline const juce::Colour kIndicatorInTune   = juce::Colour(0xFF10B981); // Emerald green (in-tune / active LED)
-    static inline const juce::Colour kIndicatorSharp    = juce::Colour(0xFFFB923C); // Warm orange for sharp
-    static inline const juce::Colour kIndicatorFlat     = juce::Colour(0xFF38BDF8); // Electric sky for flat
-    static inline const juce::Colour kIndicatorWarning  = juce::Colour(0xFFEF4444); // Red warning
+    // Skeuomorphic & Neumorphic Rendering Primitives
+    static void drawNeumorphicRaised(juce::Graphics& g, juce::Rectangle<float> bounds,
+                                     float cornerRadius, float depth = 4.0f, bool isHovered = false);
 
-    static inline const juce::Colour kKnobBodyTop       = juce::Colour(0xFF242936); // Metallic dial gradient top
-    static inline const juce::Colour kKnobBodyBottom    = juce::Colour(0xFF151821); // Metallic dial gradient bottom
-    static inline const juce::Colour kKnobRim           = juce::Colour(0xFF373E4F); // Outer machined rim
+    static void drawNeumorphicSunken(juce::Graphics& g, juce::Rectangle<float> bounds,
+                                     float cornerRadius, float depth = 3.0f);
 
+    static void drawGlassGlare(juce::Graphics& g, juce::Rectangle<float> bounds, float cornerRadius);
+
+    static void drawTactileLed(juce::Graphics& g, float cx, float cy, float radius,
+                               const juce::Colour& color, bool isOn);
+
+    // Dynamically updated static colors for backward compatibility
+    static inline juce::Colour kBackgroundDark    = juce::Colour(0xFF16191F);
+    static inline juce::Colour kPanelDark         = juce::Colour(0xFF12141A);
+    static inline juce::Colour kPanelCard         = juce::Colour(0xFF1C2028);
+    static inline juce::Colour kPanelCardHover    = juce::Colour(0xFF242A36);
+    static inline juce::Colour kPanelBorder       = juce::Colour(0xFF242A36);
+    static inline juce::Colour kPanelBorderLight  = juce::Colour(0xFF2E3646);
+    static inline juce::Colour kPanelBorderGlow   = juce::Colour(0x6600E5FF);
+
+    static inline juce::Colour kTextWhite         = juce::Colour(0xFFF8FAFC);
+    static inline juce::Colour kTextLight         = juce::Colour(0xFFCBD5E1);
+    static inline juce::Colour kTextMuted         = juce::Colour(0xFF8492A6);
+    static inline juce::Colour kTextDim           = juce::Colour(0xFF475569);
+
+    static inline juce::Colour kAccentCyan        = juce::Colour(0xFF00E5FF);
+    static inline juce::Colour kAccentCyanGlow    = juce::Colour(0x4000E5FF);
+    static inline juce::Colour kAccentAmber       = juce::Colour(0xFFFFB300);
+    static inline juce::Colour kAccentAmberGlow   = juce::Colour(0x40FFB300);
+    static inline juce::Colour kIndicatorInTune   = juce::Colour(0xFF00E676);
+    static inline juce::Colour kIndicatorSharp    = juce::Colour(0xFFFB923C);
+    static inline juce::Colour kIndicatorFlat     = juce::Colour(0xFF38BDF8);
+    static inline juce::Colour kIndicatorWarning  = juce::Colour(0xFFEF4444);
+
+    static inline juce::Colour kKnobBodyTop       = juce::Colour(0xFF2C3240);
+    static inline juce::Colour kKnobBodyBottom    = juce::Colour(0xFF181B23);
+    static inline juce::Colour kKnobRim           = juce::Colour(0xFF3B4457);
+
+    // JUCE LookAndFeel Overrides
     void drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height,
                           float sliderPosProportional, float rotaryStartAngle,
                           float rotaryEndAngle, juce::Slider& slider) override;
@@ -62,4 +123,13 @@ public:
 
     juce::Font getLabelFont(juce::Label&) override;
     juce::Font getComboBoxFont(juce::ComboBox&) override;
+
+private:
+    ThemeMode m_themeMode = ThemeMode::Dark;
+    static inline ThemeMode s_themeMode = ThemeMode::Dark;
+    static inline ThemePalette s_currentPalette;
+
+    static ThemePalette makeDarkPalette();
+    static ThemePalette makeLightPalette();
+    void applyPaletteToColours();
 };

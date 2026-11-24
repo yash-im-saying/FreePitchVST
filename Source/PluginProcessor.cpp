@@ -334,6 +334,7 @@ juce::AudioProcessorEditor* FreePitchAudioProcessor::createEditor() {
 void FreePitchAudioProcessor::getStateInformation(juce::MemoryBlock& destData) {
     auto state = m_apvts.copyState();
     state.setProperty("customScaleMask", static_cast<int>(m_customScaleMask.load()), nullptr);
+    state.setProperty("isDarkTheme", m_isDarkTheme.load(), nullptr);
     std::unique_ptr<juce::XmlElement> xml(state.createXml());
     copyXmlToBinary(*xml, destData);
 }
@@ -345,6 +346,9 @@ void FreePitchAudioProcessor::setStateInformation(const void* data, int sizeInBy
         m_apvts.replaceState(state);
         if (state.hasProperty("customScaleMask")) {
             m_customScaleMask.store(static_cast<uint32_t>(static_cast<int>(state.getProperty("customScaleMask"))));
+        }
+        if (state.hasProperty("isDarkTheme")) {
+            m_isDarkTheme.store(static_cast<bool>(state.getProperty("isDarkTheme")));
         }
     }
 }

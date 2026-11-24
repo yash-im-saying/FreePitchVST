@@ -18,6 +18,7 @@ public:
     void setAccentAmber(bool isAmber);
     void setHero(bool isHero);
     void setTooltipText(const juce::String& text);
+    void updateThemeColors();
 
 private:
     juce::Slider m_slider;

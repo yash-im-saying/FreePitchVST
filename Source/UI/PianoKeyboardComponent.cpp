@@ -110,6 +110,9 @@ int PianoKeyboardComponent::getMidiFromPosition(float x, float y) const {
 
 void PianoKeyboardComponent::paint(juce::Graphics& g) {
     auto bounds = getLocalBounds().toFloat();
+    const auto& p = FreePitchLookAndFeel::getPalette();
+    bool isDarkTheme = FreePitchLookAndFeel::isDark();
+
     int minVocalMidi = g_vocalModeBounds[static_cast<int>(m_vocalMode)].minMidi;
     int maxVocalMidi = g_vocalModeBounds[static_cast<int>(m_vocalMode)].maxMidi;
 
@@ -121,7 +124,7 @@ void PianoKeyboardComponent::paint(juce::Graphics& g) {
     float blackKeyHeight = bounds.getHeight() * 0.62f;
     float blackKeyWidth = whiteKeyWidth * 0.68f;
 
-    // 1. Draw White Keys
+    // 1. Draw Ivory White Keys
     int whiteIdx = 0;
     for (int m = kStartMidi; m <= kEndMidi; ++m) {
         if (!isBlackKey(m)) {
@@ -133,55 +136,76 @@ void PianoKeyboardComponent::paint(juce::Graphics& g) {
             bool isDetected = (m_isVoiced && m == m_detectedMidi);
             bool isTarget = (m_isVoiced && m == m_targetMidi);
 
-            // Ivory vertical gradient
-            juce::Colour topCol = juce::Colour(0xFFF1F5F9);
-            juce::Colour botCol = juce::Colour(0xFFE2E8F0);
+            juce::Colour topCol;
+            juce::Colour botCol;
 
-            if (!inVocalRange) {
-                topCol = juce::Colour(0xFF333842);
-                botCol = juce::Colour(0xFF282C35);
-            } else if (!inScale) {
-                topCol = juce::Colour(0xFF6B7280);
-                botCol = juce::Colour(0xFF555B68);
+            if (isDarkTheme) {
+                topCol = juce::Colour(0xFF282D38);
+                botCol = juce::Colour(0xFF1D2128);
+                if (!inVocalRange) {
+                    topCol = juce::Colour(0xFF16191F);
+                    botCol = juce::Colour(0xFF101216);
+                } else if (!inScale) {
+                    topCol = juce::Colour(0xFF20242D);
+                    botCol = juce::Colour(0xFF171A20);
+                }
+            } else {
+                topCol = juce::Colour(0xFFFFFFFF);
+                botCol = juce::Colour(0xFFE8EDF4);
+                if (!inVocalRange) {
+                    topCol = juce::Colour(0xFFD3D9E2);
+                    botCol = juce::Colour(0xFFC4CBD6);
+                } else if (!inScale) {
+                    topCol = juce::Colour(0xFFBAC5D3);
+                    botCol = juce::Colour(0xFFAAB6C6);
+                }
             }
 
             if (isTarget) {
-                topCol = FreePitchLookAndFeel::kAccentAmber;
-                botCol = FreePitchLookAndFeel::kAccentAmber.darker(0.2f);
+                topCol = p.accentAmber;
+                botCol = p.accentAmber.darker(0.25f);
             } else if (isDetected) {
-                topCol = FreePitchLookAndFeel::kAccentCyan;
-                botCol = FreePitchLookAndFeel::kAccentCyan.darker(0.2f);
+                topCol = p.accentCyan;
+                botCol = p.accentCyan.darker(0.25f);
             }
 
             juce::ColourGradient grad(topCol, kx, 0.0f, botCol, kx, bounds.getHeight(), false);
             g.setGradientFill(grad);
             g.fillRect(keyRect);
 
+            // 3D tactile bevelled front lip on white keys
+            float lipH = 6.0f;
+            auto lipRect = juce::Rectangle<float>(kx, bounds.getHeight() - lipH, whiteKeyWidth, lipH);
+            g.setColour(botCol.darker(0.20f));
+            g.fillRect(lipRect);
+            g.setColour(p.panelBorderLight.withAlpha(0.35f));
+            g.drawHorizontalLine(static_cast<int>(lipRect.getY()), keyRect.getX(), keyRect.getRight());
+
             // Active scale note indicator dot at bottom of in-scale white keys
             if (inScale && inVocalRange && !isTarget && !isDetected) {
                 float dotRadius = 2.5f;
-                g.setColour(FreePitchLookAndFeel::kAccentCyan.withAlpha(0.65f));
-                g.fillEllipse(kx + whiteKeyWidth * 0.5f - dotRadius, bounds.getHeight() - 18.0f,
+                g.setColour(p.accentCyan.withAlpha(0.75f));
+                g.fillEllipse(kx + whiteKeyWidth * 0.5f - dotRadius, bounds.getHeight() - 20.0f,
                               dotRadius * 2.0f, dotRadius * 2.0f);
             }
 
             // Hairline separator between keys
-            g.setColour(FreePitchLookAndFeel::kBackgroundDark);
+            g.setColour(p.bgBase);
             g.drawRect(keyRect, 1.0f);
 
             // Print Note Name (e.g. C1, C2, C3, C4, C5, C6) on C keys
             if (m % 12 == 0) {
                 int oct = (m / 12) - 1;
-                g.setColour(isTarget || isDetected ? juce::Colours::black : FreePitchLookAndFeel::kTextDim);
+                g.setColour(isTarget || isDetected ? juce::Colours::black : p.textDim);
                 g.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 9.5f, juce::Font::bold));
-                g.drawText("C" + juce::String(oct), keyRect.removeFromBottom(12.0f), juce::Justification::centred);
+                g.drawText("C" + juce::String(oct), keyRect.removeFromBottom(18.0f), juce::Justification::centred);
             }
 
             whiteIdx++;
         }
     }
 
-    // 2. Draw Black Keys
+    // 2. Draw Ebony Black Keys
     whiteIdx = 0;
     for (int m = kStartMidi; m <= kEndMidi; ++m) {
         if (isBlackKey(m)) {
@@ -193,38 +217,48 @@ void PianoKeyboardComponent::paint(juce::Graphics& g) {
             bool isDetected = (m_isVoiced && m == m_detectedMidi);
             bool isTarget = (m_isVoiced && m == m_targetMidi);
 
-            juce::Colour topCol = juce::Colour(0xFF222630);
-            juce::Colour botCol = juce::Colour(0xFF12141A);
+            // Skeuomorphic drop shadow cast by raised black key onto white keys below
+            g.setColour(p.shadowDark);
+            g.fillRoundedRectangle(blackRect.translated(1.5f, 2.5f), 2.5f);
+
+            juce::Colour topCol = isDarkTheme ? juce::Colour(0xFF262C37) : juce::Colour(0xFF333D4B);
+            juce::Colour botCol = isDarkTheme ? juce::Colour(0xFF11141A) : juce::Colour(0xFF1E242C);
 
             if (!inVocalRange) {
-                topCol = juce::Colour(0xFF14171E);
-                botCol = juce::Colour(0xFF0C0E12);
+                topCol = isDarkTheme ? juce::Colour(0xFF14171E) : juce::Colour(0xFF202630);
+                botCol = isDarkTheme ? juce::Colour(0xFF0A0C0F) : juce::Colour(0xFF14181E);
             } else if (!inScale) {
-                topCol = juce::Colour(0xFF2D3340);
-                botCol = juce::Colour(0xFF1A1E26);
+                topCol = isDarkTheme ? juce::Colour(0xFF1D222B) : juce::Colour(0xFF272F3A);
+                botCol = isDarkTheme ? juce::Colour(0xFF0F1116) : juce::Colour(0xFF181C22);
             }
 
             if (isTarget) {
-                topCol = FreePitchLookAndFeel::kAccentAmber;
-                botCol = FreePitchLookAndFeel::kAccentAmber.darker(0.3f);
+                topCol = p.accentAmber;
+                botCol = p.accentAmber.darker(0.35f);
             } else if (isDetected) {
-                topCol = FreePitchLookAndFeel::kAccentCyan;
-                botCol = FreePitchLookAndFeel::kAccentCyan.darker(0.3f);
+                topCol = p.accentCyan;
+                botCol = p.accentCyan.darker(0.35f);
             }
 
             juce::ColourGradient blackGrad(topCol, blackRect.getX(), 0.0f, botCol, blackRect.getX(), blackKeyHeight, false);
             g.setGradientFill(blackGrad);
             g.fillRoundedRectangle(blackRect.reduced(0.5f, 0.0f), 2.0f);
 
+            // Specular ridge highlight along the center of black key
+            if (!isTarget && !isDetected) {
+                g.setColour(juce::Colours::white.withAlpha(0.12f));
+                g.drawLine(blackCenterX, 2.0f, blackCenterX, blackKeyHeight - 3.0f, 1.0f);
+            }
+
             // Active scale note dot on black keys
             if (inScale && inVocalRange && !isTarget && !isDetected) {
                 float dotRadius = 2.0f;
-                g.setColour(FreePitchLookAndFeel::kAccentCyan.withAlpha(0.65f));
+                g.setColour(p.accentCyan.withAlpha(0.75f));
                 g.fillEllipse(blackCenterX - dotRadius, blackKeyHeight - 10.0f,
                               dotRadius * 2.0f, dotRadius * 2.0f);
             }
 
-            g.setColour(FreePitchLookAndFeel::kBackgroundDark);
+            g.setColour(p.bgBase);
             g.drawRoundedRectangle(blackRect.reduced(0.5f, 0.0f), 2.0f, 1.0f);
         } else {
             whiteIdx++;
@@ -247,7 +281,7 @@ void PianoKeyboardComponent::paint(juce::Graphics& g) {
         }
     }
 
-    g.setColour(FreePitchLookAndFeel::kAccentAmber);
+    g.setColour(p.accentAmber);
     g.drawHorizontalLine(1, rangeX1, rangeX2);
     g.drawVerticalLine(static_cast<int>(rangeX1), 0.0f, 7.0f);
     g.drawVerticalLine(static_cast<int>(rangeX2), 0.0f, 7.0f);

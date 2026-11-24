@@ -51,6 +51,9 @@ public:
     void setCustomScaleMask(uint32_t mask12Bit);
     uint32_t getCustomScaleMask() const { return m_customScaleMask.load(); }
 
+    void setDarkTheme(bool isDark) { m_isDarkTheme.store(isDark); }
+    bool isDarkTheme() const { return m_isDarkTheme.load(); }
+
 private:
     juce::AudioProcessorValueTreeState m_apvts;
     PresetManager m_presetManager;
@@ -80,6 +83,7 @@ private:
     std::atomic<float> m_atomicInputRmsDb { -100.0f };
     std::atomic<float> m_atomicOutputRmsDb { -100.0f };
     std::atomic<uint32_t> m_customScaleMask { 0x0FFF };
+    std::atomic<bool>     m_isDarkTheme { true };
 
     // Cached parameter pointers for zero-overhead audio thread lookup
     std::atomic<float>* m_prmVocalMode = nullptr;

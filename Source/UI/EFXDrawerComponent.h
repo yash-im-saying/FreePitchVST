@@ -13,6 +13,7 @@ public:
     ~EFXDrawerComponent() override = default;
 
     void updateTelemetry(const PitchTelemetry& telemetry);
+    void updateThemeColors();
     void paint(juce::Graphics& g) override;
     void resized() override;
 

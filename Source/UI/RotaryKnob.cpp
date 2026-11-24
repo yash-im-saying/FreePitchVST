@@ -76,12 +76,17 @@ void RotaryKnob::resized() {
 }
 
 void RotaryKnob::paint(juce::Graphics& g) {
-    // Subtle inset value badge container on bottom
+    // Skeuomorphic debossed / sunken value badge container
     auto valArea = m_valueLabel.getBounds().toFloat().reduced(1.0f, 0.5f);
-    g.setColour(FreePitchLookAndFeel::kPanelDark);
-    g.fillRoundedRectangle(valArea, 3.0f);
-    g.setColour(FreePitchLookAndFeel::kPanelBorder);
-    g.drawRoundedRectangle(valArea, 3.0f, 0.8f);
+    FreePitchLookAndFeel::drawNeumorphicSunken(g, valArea, 3.5f, 2.0f);
+}
+
+void RotaryKnob::updateThemeColors() {
+    const auto& p = FreePitchLookAndFeel::getPalette();
+    m_titleLabel.setColour(juce::Label::textColourId, m_isHero ? p.textSecondary : p.textMuted);
+    m_valueLabel.setColour(juce::Label::textColourId, p.textPrimary);
+    m_slider.repaint();
+    repaint();
 }
 
 void RotaryKnob::updateValueDisplay() {

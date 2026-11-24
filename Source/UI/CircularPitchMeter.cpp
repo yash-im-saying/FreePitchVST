@@ -44,27 +44,41 @@ void CircularPitchMeter::paint(juce::Graphics& g) {
     float radius = std::min(bounds.getWidth(), bounds.getHeight()) * 0.5f;
 
     bool isVoiced = m_currentTelemetry.isVoiced && (m_smoothConfidence > 0.15f);
+    const auto& p = FreePitchLookAndFeel::getPalette();
 
-    // 1. Outer Chassis Halo / Bezel
-    g.setColour(FreePitchLookAndFeel::kPanelDark);
-    g.fillEllipse(centreX - radius, centreY - radius, radius * 2.0f, radius * 2.0f);
+    // 1. Skeuomorphic Outer Bezel & Sunken Gauge Cavity
+    // Top-left specular highlight shadow
+    g.setColour(p.shadowLight);
+    g.fillEllipse(centreX - radius - 2.5f, centreY - radius - 2.5f, (radius + 1.5f) * 2.0f, (radius + 1.5f) * 2.0f);
 
-    // Soft drop shadow inside perimeter
-    g.setColour(juce::Colours::black.withAlpha(0.6f));
-    g.drawEllipse(centreX - radius, centreY - radius, radius * 2.0f, radius * 2.0f, 2.5f);
+    // Bottom-right ambient shadow
+    g.setColour(p.shadowDark);
+    g.fillEllipse(centreX - radius + 3.0f, centreY - radius + 3.0f, (radius + 1.5f) * 2.0f, (radius + 1.5f) * 2.0f);
 
-    g.setColour(FreePitchLookAndFeel::kPanelBorder);
-    g.drawEllipse(centreX - radius, centreY - radius, radius * 2.0f, radius * 2.0f, 1.0f);
+    // Sunken Gauge Cavity
+    juce::Rectangle<float> cavityRect(centreX - radius, centreY - radius, radius * 2.0f, radius * 2.0f);
+    g.setColour(p.panelSunken);
+    g.fillEllipse(cavityRect);
+
+    // Inner shadow of the gauge cavity
+    juce::ColourGradient cavityInner(p.innerShadowDark, centreX - radius, centreY - radius,
+                                     p.panelSunken, centreX, centreY, true);
+    g.setGradientFill(cavityInner);
+    g.drawEllipse(cavityRect.reduced(0.5f), 3.0f);
+
+    // Hairline perimeter bezel
+    g.setColour(p.panelBorder);
+    g.drawEllipse(cavityRect, 1.0f);
 
     // 2. Pitch Dial Scale Markings (-50 ct to +50 ct across a 190-degree sweep)
     float maxAngle = juce::MathConstants<float>::pi * 0.55f; // ~99 degrees left & right of TDC
     float trackRadius = radius - 14.0f;
 
-    // Background track arc
+    // Background track arc (Recessed groove)
     if (trackRadius > 10.0f) {
         juce::Path bgArc;
         bgArc.addCentredArc(centreX, centreY, trackRadius, trackRadius, 0.0f, -maxAngle, maxAngle, true);
-        g.setColour(FreePitchLookAndFeel::kPanelBorder);
+        g.setColour(p.panelBorder);
         g.strokePath(bgArc, juce::PathStrokeType(4.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
     }
 
@@ -81,15 +95,15 @@ void CircularPitchMeter::paint(juce::Graphics& g) {
 
         if (ct == 0) {
             // Zero cent marker (In-Tune Target)
-            g.setColour(FreePitchLookAndFeel::kAccentAmber);
+            g.setColour(p.accentAmber);
             g.drawLine(x1, y1, x2, y2, 2.5f);
 
             // Glowing diamond pip at TDC
             float pipY = centreY - trackRadius - 9.0f;
-            g.setColour(FreePitchLookAndFeel::kAccentAmber.withAlpha(0.85f));
+            g.setColour(p.accentAmber.withAlpha(0.85f));
             g.fillEllipse(centreX - 2.5f, pipY - 2.5f, 5.0f, 5.0f);
         } else {
-            g.setColour(FreePitchLookAndFeel::kTextDim);
+            g.setColour(p.textDim);
             g.drawLine(x1, y1, x2, y2, 1.2f);
         }
     }
@@ -103,7 +117,7 @@ void CircularPitchMeter::paint(juce::Graphics& g) {
         float ly = centreY - std::cos(angle) * labelR;
 
         juce::String str = (ct > 0 ? "+" : "") + juce::String(ct);
-        g.setColour(ct == 0 ? FreePitchLookAndFeel::kAccentAmber : FreePitchLookAndFeel::kTextDim);
+        g.setColour(ct == 0 ? p.accentAmber : p.textDim);
         g.drawText(str, static_cast<int>(lx - 15.0f), static_cast<int>(ly - 7.0f), 30, 14,
                    juce::Justification::centred);
     }
@@ -114,7 +128,7 @@ void CircularPitchMeter::paint(juce::Graphics& g) {
 
     if (std::abs(clampedDev) > 0.4f && isVoiced && trackRadius > 10.0f) {
         juce::Path devArc;
-        juce::Colour arcColor = (devAngle < 0.0f) ? FreePitchLookAndFeel::kIndicatorFlat : FreePitchLookAndFeel::kIndicatorSharp;
+        juce::Colour arcColor = (devAngle < 0.0f) ? p.indicatorFlat : p.indicatorSharp;
         float alphaVal = std::clamp(m_smoothConfidence, 0.3f, 1.0f);
 
         if (devAngle < 0.0f) {
@@ -123,7 +137,7 @@ void CircularPitchMeter::paint(juce::Graphics& g) {
             devArc.addCentredArc(centreX, centreY, trackRadius, trackRadius, 0.0f, 0.0f, devAngle, true);
         }
 
-        // Glowing outer arc
+        // Glowing outer bloom
         g.setColour(arcColor.withAlpha(0.35f * alphaVal));
         g.strokePath(devArc, juce::PathStrokeType(8.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
 
@@ -143,39 +157,48 @@ void CircularPitchMeter::paint(juce::Graphics& g) {
         } else {
             corrArc.addCentredArc(centreX, centreY, corrRadius, corrRadius, 0.0f, 0.0f, corrAngle, true);
         }
-        g.setColour(FreePitchLookAndFeel::kAccentAmber.withAlpha(0.90f));
+        g.setColour(p.accentAmber.withAlpha(0.90f));
         g.strokePath(corrArc, juce::PathStrokeType(3.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
     }
 
-    // 5. Central Note Display Glass Disc
+    // 5. Central Raised Note Display Hardware Hub
     float centerDiscRadius = radius * 0.54f;
     juce::Rectangle<float> centerDisc(centreX - centerDiscRadius, centreY - centerDiscRadius,
                                       centerDiscRadius * 2.0f, centerDiscRadius * 2.0f);
 
-    // Glowing Voiced Aura
+    // Glowing Voiced Phosphor Aura
     if (isVoiced) {
         float auraAlpha = std::clamp(m_smoothConfidence * 0.35f, 0.05f, 0.35f);
         juce::Colour auraColor = (std::abs(m_smoothCentsDev) <= 5.0f)
-                                 ? FreePitchLookAndFeel::kIndicatorInTune
-                                 : FreePitchLookAndFeel::kAccentCyan;
+                                 ? p.indicatorInTune
+                                 : p.accentCyan;
         g.setColour(auraColor.withAlpha(auraAlpha));
         g.fillEllipse(centerDisc.expanded(8.0f));
     }
 
-    // Dark glass disc body with gradient
-    juce::ColourGradient discGrad(FreePitchLookAndFeel::kPanelCard, centreX, centerDisc.getY(),
-                                  FreePitchLookAndFeel::kBackgroundDark, centreX, centerDisc.getBottom(), false);
+    // Raised hub drop shadow
+    g.setColour(p.shadowDark);
+    g.fillEllipse(centerDisc.translated(0.0f, 2.5f));
+
+    // Metallic Hub Gradient (Machined Aluminum / Gunmetal)
+    juce::ColourGradient discGrad(p.knobCapTop, centreX, centerDisc.getY(),
+                                  p.knobCapBottom, centreX, centerDisc.getBottom(), false);
     g.setGradientFill(discGrad);
     g.fillEllipse(centerDisc);
 
     // Disc border (highlighted if in tune)
     if (isVoiced && std::abs(m_smoothCentsDev) <= 5.0f) {
-        g.setColour(FreePitchLookAndFeel::kIndicatorInTune.withAlpha(0.7f));
-        g.drawEllipse(centerDisc, 1.5f);
+        g.setColour(p.indicatorInTune.withAlpha(0.85f));
+        g.drawEllipse(centerDisc, 1.8f);
     } else {
-        g.setColour(FreePitchLookAndFeel::kPanelBorderLight);
-        g.drawEllipse(centerDisc, 1.0f);
+        g.setColour(p.knobRim);
+        g.drawEllipse(centerDisc, 1.2f);
     }
+
+    // Concentric machined hairline on hub
+    float innerHubRing = centerDiscRadius * 0.88f;
+    g.setColour(p.panelBorder.withAlpha(0.4f));
+    g.drawEllipse(centreX - innerHubRing, centreY - innerHubRing, innerHubRing * 2.0f, innerHubRing * 2.0f, 0.8f);
 
     // 6. Center Hero Note Display
     juce::String noteName = isVoiced ? midiToNoteName(m_currentTelemetry.targetMidi) : "--";
@@ -183,12 +206,12 @@ void CircularPitchMeter::paint(juce::Graphics& g) {
     g.setFont(juce::FontOptions(juce::Font::getDefaultSansSerifFontName(), centerDiscRadius * 0.70f, juce::Font::bold));
     if (isVoiced) {
         if (std::abs(m_smoothCentsDev) <= 5.0f) {
-            g.setColour(FreePitchLookAndFeel::kIndicatorInTune);
+            g.setColour(p.indicatorInTune);
         } else {
-            g.setColour(FreePitchLookAndFeel::kTextWhite);
+            g.setColour(p.textPrimary);
         }
     } else {
-        g.setColour(FreePitchLookAndFeel::kTextDim);
+        g.setColour(p.textDim);
     }
 
     float noteY = centreY - centerDiscRadius * 0.48f;
@@ -196,52 +219,48 @@ void CircularPitchMeter::paint(juce::Graphics& g) {
                static_cast<int>(centerDiscRadius * 2.0f), static_cast<int>(centerDiscRadius * 0.65f),
                juce::Justification::centred);
 
-    // 7. Cents Deviation Pill Badge below note
+    // 7. Cents Deviation Pill Badge (Skeuomorphic Sunken Status Screen)
     float pillW = centerDiscRadius * 1.15f;
     float pillH = 18.0f;
     float pillX = centreX - pillW * 0.5f;
     float pillY = centreY + centerDiscRadius * 0.16f;
     juce::Rectangle<float> pillBounds(pillX, pillY, pillW, pillH);
 
+    FreePitchLookAndFeel::drawNeumorphicSunken(g, pillBounds, 9.0f, 2.0f);
+
     juce::String pillText;
-    juce::Colour pillBg;
     juce::Colour pillTextCol;
 
     if (isVoiced) {
         float absDev = std::abs(m_smoothCentsDev);
         if (absDev <= 4.0f) {
             pillText = "IN TUNE";
-            pillBg = FreePitchLookAndFeel::kIndicatorInTune.withAlpha(0.20f);
-            pillTextCol = FreePitchLookAndFeel::kIndicatorInTune;
+            pillTextCol = p.indicatorInTune;
         } else {
             int devInt = static_cast<int>(std::round(m_smoothCentsDev));
             pillText = (devInt > 0 ? "+" : "") + juce::String(devInt) + " ct";
-            pillBg = (devInt < 0) ? FreePitchLookAndFeel::kIndicatorFlat.withAlpha(0.20f)
-                                  : FreePitchLookAndFeel::kIndicatorSharp.withAlpha(0.20f);
-            pillTextCol = (devInt < 0) ? FreePitchLookAndFeel::kIndicatorFlat
-                                       : FreePitchLookAndFeel::kIndicatorSharp;
+            pillTextCol = (devInt < 0) ? p.indicatorFlat : p.indicatorSharp;
         }
     } else {
         pillText = "UNVOICED";
-        pillBg = FreePitchLookAndFeel::kPanelDark;
-        pillTextCol = FreePitchLookAndFeel::kTextDim;
+        pillTextCol = p.textDim;
     }
 
-    g.setColour(pillBg);
-    g.fillRoundedRectangle(pillBounds, 9.0f);
-    g.setColour(pillTextCol.withAlpha(0.5f));
-    g.drawRoundedRectangle(pillBounds, 9.0f, 1.0f);
-
-    g.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 10.5f, juce::Font::bold));
+    g.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 10.0f, juce::Font::bold));
     g.setColour(pillTextCol);
     g.drawText(pillText, pillBounds.toNearestInt(), juce::Justification::centred);
 
     // 8. Hz Readout on bottom
     if (isVoiced && m_smoothFrequency > 20.0f) {
         g.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 9.5f, juce::Font::plain));
-        g.setColour(FreePitchLookAndFeel::kTextMuted);
+        g.setColour(p.textMuted);
         juce::String hzStr = juce::String(m_smoothFrequency, 1) + " Hz";
         g.drawText(hzStr, static_cast<int>(centreX - 50.0f), static_cast<int>(pillY + pillH + 2.0f), 100, 14,
                    juce::Justification::centred);
     }
+
+    // 9. Convex Domed Glass Specular Glare Reflection (Signature Skeuomorphism)
+    juce::Rectangle<float> glassArea(centreX - radius + 2.0f, centreY - radius + 2.0f,
+                                     (radius - 2.0f) * 2.0f, (radius - 2.0f) * 2.0f);
+    FreePitchLookAndFeel::drawGlassGlare(g, glassArea, radius);
 }

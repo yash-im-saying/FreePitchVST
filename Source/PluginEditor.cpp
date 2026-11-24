@@ -9,6 +9,9 @@ FreePitchAudioProcessorEditor::FreePitchAudioProcessorEditor(FreePitchAudioProce
     juce::LookAndFeel::setDefaultLookAndFeel(&m_lookAndFeel);
 
     // --- Top Bar Branding ---
+    bool isDark = m_processor.isDarkTheme();
+    m_lookAndFeel.setThemeMode(isDark ? FreePitchLookAndFeel::ThemeMode::Dark : FreePitchLookAndFeel::ThemeMode::Light);
+
     m_titleLabel.setText("FREEPITCH", juce::dontSendNotification);
     m_titleLabel.setFont(juce::FontOptions(juce::Font::getDefaultSansSerifFontName(), 18.0f, juce::Font::bold));
     m_titleLabel.setColour(juce::Label::textColourId, FreePitchLookAndFeel::kTextWhite);
@@ -23,6 +26,15 @@ FreePitchAudioProcessorEditor::FreePitchAudioProcessorEditor(FreePitchAudioProce
     m_versionLabel.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 9.5f, juce::Font::plain));
     m_versionLabel.setColour(juce::Label::textColourId, FreePitchLookAndFeel::kTextDim);
     addAndMakeVisible(m_versionLabel);
+
+    m_themeToggleBtn.setTooltip("Theme Mode: Switch between Skeuomorphic Dark and Light Studio Themes");
+    m_themeToggleBtn.onClick = [this]() {
+        bool newDark = !m_lookAndFeel.isDarkTheme();
+        m_lookAndFeel.setThemeMode(newDark ? FreePitchLookAndFeel::ThemeMode::Dark : FreePitchLookAndFeel::ThemeMode::Light);
+        m_processor.setDarkTheme(newDark);
+        updateThemeUI();
+    };
+    addAndMakeVisible(m_themeToggleBtn);
 
     // --- Presets Section ---
     m_prevPresetBtn.setTooltip("Previous Preset");
@@ -195,12 +207,37 @@ FreePitchAudioProcessorEditor::FreePitchAudioProcessorEditor(FreePitchAudioProce
     setResizable(true, true);
     setResizeLimits(920, 580, 1600, 1050);
 
+    updateThemeUI();
     startTimerHz(60); // 60 FPS Visual Telemetry
 }
 
 FreePitchAudioProcessorEditor::~FreePitchAudioProcessorEditor() {
     stopTimer();
     juce::LookAndFeel::setDefaultLookAndFeel(nullptr);
+}
+
+void FreePitchAudioProcessorEditor::updateThemeUI() {
+    const auto& p = FreePitchLookAndFeel::getPalette();
+    bool isDark = m_lookAndFeel.isDarkTheme();
+
+    m_themeToggleBtn.setButtonText(isDark ? "DARK" : "LIGHT");
+    m_titleLabel.setColour(juce::Label::textColourId, p.textPrimary);
+    m_subtitleLabel.setColour(juce::Label::textColourId, p.accentCyan);
+    m_versionLabel.setColour(juce::Label::textColourId, p.textDim);
+    m_latencyLabel.setColour(juce::Label::textColourId, p.textMuted);
+    m_formantsTitleLabel.setColour(juce::Label::textColourId, p.textMuted);
+    m_formantsSubLabel.setColour(juce::Label::textColourId, p.textDim);
+
+    if (m_retuneSpeedKnob)  m_retuneSpeedKnob->updateThemeColors();
+    if (m_humanizeKnob)     m_humanizeKnob->updateThemeColors();
+    if (m_flexTuneKnob)     m_flexTuneKnob->updateThemeColors();
+    if (m_pitchShiftKnob)   m_pitchShiftKnob->updateThemeColors();
+    if (m_formantShiftKnob) m_formantShiftKnob->updateThemeColors();
+
+    m_efxDrawer.updateThemeColors();
+    m_circularMeter.repaint();
+    m_pianoKeyboard.repaint();
+    repaint();
 }
 
 void FreePitchAudioProcessorEditor::updatePresetBox() {
@@ -249,22 +286,19 @@ void FreePitchAudioProcessorEditor::timerCallback() {
 
 void FreePitchAudioProcessorEditor::paint(juce::Graphics& g) {
     auto bounds = getLocalBounds().toFloat();
+    const auto& p = FreePitchLookAndFeel::getPalette();
 
-    // 1. Deep Obsidian Studio Chassis
-    g.fillAll(FreePitchLookAndFeel::kBackgroundDark);
+    // 1. Studio Chassis Base Surface
+    g.fillAll(p.bgBase);
 
-    // 2. Top Bar Panel (50px)
+    // 2. Top Bar Panel (Skeuomorphic Sunken Bay)
     auto topBarArea = bounds.removeFromTop(50.0f);
-    g.setColour(FreePitchLookAndFeel::kPanelDark);
-    g.fillRect(topBarArea);
-
-    g.setColour(FreePitchLookAndFeel::kPanelBorder);
-    g.drawHorizontalLine(static_cast<int>(topBarArea.getBottom()), 0.0f, bounds.getWidth());
+    FreePitchLookAndFeel::drawNeumorphicSunken(g, topBarArea, 0.0f, 2.0f);
 
     // Cyan branding dot beside title
-    g.setColour(FreePitchLookAndFeel::kAccentCyan);
+    g.setColour(p.accentCyan);
     g.fillEllipse(14.0f, 16.0f, 6.0f, 6.0f);
-    g.setColour(FreePitchLookAndFeel::kAccentCyanGlow);
+    g.setColour(p.accentCyanGlow);
     g.fillEllipse(12.0f, 14.0f, 10.0f, 10.0f);
 
     // 3. Responsive Proportional Grid
@@ -275,40 +309,37 @@ void FreePitchAudioProcessorEditor::paint(juce::Graphics& g) {
     float leftWidth = std::clamp(totalW * 0.22f, 210.0f, 290.0f);
     float rightWidth = std::clamp(totalW * 0.46f, 450.0f, 740.0f);
 
-    // Left Bank Panel (Tuning Dynamics)
+    // Left Bank Panel (Tuning Dynamics): Skeuomorphic Raised Neumorphic Card
     auto leftPanel = contentArea.removeFromLeft(leftWidth).reduced(6.0f, 6.0f);
-    g.setColour(FreePitchLookAndFeel::kPanelCard);
-    g.fillRoundedRectangle(leftPanel, 6.0f);
-    g.setColour(FreePitchLookAndFeel::kPanelBorder);
-    g.drawRoundedRectangle(leftPanel, 6.0f, 1.0f);
+    FreePitchLookAndFeel::drawNeumorphicRaised(g, leftPanel, 8.0f, 4.0f);
 
-    // Right Bank Panel (Voice Tone & Modular EFX)
+    // Right Bank Panel (Voice Tone & Modular EFX): Skeuomorphic Raised Neumorphic Card
     auto rightPanel = contentArea.removeFromRight(rightWidth).reduced(6.0f, 6.0f);
-    g.setColour(FreePitchLookAndFeel::kPanelCard);
-    g.fillRoundedRectangle(rightPanel, 6.0f);
-    g.setColour(FreePitchLookAndFeel::kPanelBorder);
-    g.drawRoundedRectangle(rightPanel, 6.0f, 1.0f);
+    FreePitchLookAndFeel::drawNeumorphicRaised(g, rightPanel, 8.0f, 4.0f);
 
-    // Center Focal Zone Panel (Pitch Radar & Scale Quantizer)
+    // Center Focal Zone Panel (Pitch Radar & Scale Quantizer): Skeuomorphic Raised Neumorphic Card
     auto centerPanel = contentArea.reduced(6.0f, 6.0f);
-    g.setColour(FreePitchLookAndFeel::kPanelCard);
-    g.fillRoundedRectangle(centerPanel, 6.0f);
-    g.setColour(FreePitchLookAndFeel::kPanelBorder);
-    g.drawRoundedRectangle(centerPanel, 6.0f, 1.0f);
+    FreePitchLookAndFeel::drawNeumorphicRaised(g, centerPanel, 8.0f, 4.0f);
 
     // Section Header Badges
     auto drawHeader = [&](const juce::String& text, juce::Rectangle<float> panel, const juce::Colour& dotCol) {
-        g.setColour(dotCol);
-        g.fillEllipse(panel.getX() + 12.0f, panel.getY() + 11.0f, 5.0f, 5.0f);
+        // Tactile hairline bevel divider under header
+        g.setColour(p.panelBorderLight.withAlpha(0.25f));
+        g.drawHorizontalLine(static_cast<int>(panel.getY() + 24.0f), panel.getX() + 10.0f, panel.getRight() - 10.0f);
+
+        // Tactile hardware LED pip
+        FreePitchLookAndFeel::drawTactileLed(g, panel.getX() + 16.0f, panel.getY() + 13.0f, 2.5f, dotCol, true);
+
+        // Header Typography
         g.setFont(juce::FontOptions(10.5f, juce::Font::bold));
-        g.setColour(FreePitchLookAndFeel::kTextLight);
-        g.drawText(text, juce::Rectangle<float>(panel.getX() + 22.0f, panel.getY() + 6.0f, panel.getWidth() - 30.0f, 16.0f),
+        g.setColour(p.textSecondary);
+        g.drawText(text, juce::Rectangle<float>(panel.getX() + 25.0f, panel.getY() + 6.0f, panel.getWidth() - 35.0f, 16.0f),
                    juce::Justification::centredLeft);
     };
 
-    drawHeader("TUNING DYNAMICS", leftPanel, FreePitchLookAndFeel::kAccentCyan);
-    drawHeader("PITCH RADAR & SCALE QUANTIZER", centerPanel, FreePitchLookAndFeel::kAccentAmber);
-    drawHeader("VOICE TONE & MODULAR EFX", rightPanel, FreePitchLookAndFeel::kAccentCyan);
+    drawHeader("TUNING DYNAMICS", leftPanel, p.accentCyan);
+    drawHeader("PITCH RADAR & SCALE QUANTIZER", centerPanel, p.accentAmber);
+    drawHeader("VOICE TONE & MODULAR EFX", rightPanel, p.accentCyan);
 
     // Live Confidence / Voiced Gate Bar in Center Panel
     if (!m_confidenceMeterBounds.isEmpty()) {
@@ -317,16 +348,13 @@ void FreePitchAudioProcessorEditor::paint(juce::Graphics& g) {
         float cw = m_confidenceMeterBounds.getWidth();
         float ch = m_confidenceMeterBounds.getHeight();
 
-        g.setColour(FreePitchLookAndFeel::kPanelDark);
-        g.fillRoundedRectangle(cx, cy, cw, ch, 3.0f);
-        g.setColour(FreePitchLookAndFeel::kPanelBorder);
-        g.drawRoundedRectangle(cx, cy, cw, ch, 3.0f, 0.8f);
+        // Skeuomorphic Sunken Neumorphic Well
+        FreePitchLookAndFeel::drawNeumorphicSunken(g, m_confidenceMeterBounds, 4.0f, 2.0f);
 
         float confFrac = std::clamp(m_smoothConfidence, 0.0f, 1.0f);
         if (confFrac > 0.02f) {
-            auto fillRect = juce::Rectangle<float>(cx, cy, cw * confFrac, ch);
-            juce::Colour fillCol = (confFrac >= 0.58f) ? FreePitchLookAndFeel::kIndicatorInTune
-                                                      : FreePitchLookAndFeel::kIndicatorSharp;
+            auto fillRect = juce::Rectangle<float>(cx + 1.0f, cy + 1.0f, (cw - 2.0f) * confFrac, ch - 2.0f);
+            juce::Colour fillCol = (confFrac >= 0.58f) ? p.indicatorInTune : p.indicatorSharp;
             g.setColour(fillCol.withAlpha(0.85f));
             g.fillRoundedRectangle(fillRect, 3.0f);
         }
@@ -334,7 +362,7 @@ void FreePitchAudioProcessorEditor::paint(juce::Graphics& g) {
         // Percentage readout
         int pct = static_cast<int>(std::round(confFrac * 100.0f));
         g.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 9.0f, juce::Font::bold));
-        g.setColour(FreePitchLookAndFeel::kTextWhite);
+        g.setColour(p.textPrimary);
         juce::String txt = (confFrac >= 0.58f ? "GATE: VOICED " : "GATE: UNVOICED ") + juce::String(pct) + "%";
         g.drawText(txt, static_cast<int>(cx), static_cast<int>(cy), static_cast<int>(cw), static_cast<int>(ch),
                    juce::Justification::centred);
@@ -351,13 +379,14 @@ void FreePitchAudioProcessorEditor::resized() {
     // 1. Top Header Bar (50px)
     auto topBar = bounds.removeFromTop(50).reduced(8, 6);
 
-    // Left Zone (width = leftW - 8): Logo, Subtitle, Version
+    // Left Zone (width = leftW - 8): Logo, Subtitle, Version, Theme Toggle Button
     auto leftTopArea = topBar.removeFromLeft(leftW - 8);
-    int logoW = std::clamp(leftTopArea.getWidth() - 44, 110, 150);
+    int logoW = std::clamp(leftTopArea.getWidth() - 96, 85, 130);
     auto logoArea = leftTopArea.removeFromLeft(logoW);
     m_titleLabel.setBounds(logoArea.removeFromTop(20).withTrimmedLeft(18));
     m_subtitleLabel.setBounds(logoArea.withTrimmedLeft(18));
-    m_versionLabel.setBounds(leftTopArea.reduced(2, 4));
+    m_versionLabel.setBounds(leftTopArea.removeFromLeft(34).reduced(1, 4));
+    m_themeToggleBtn.setBounds(leftTopArea.reduced(2, 4));
 
     // Right Zone (width = rightW - 8): Key, Scale, Lookahead, Latency, Master EFX
     auto rightTopArea = topBar.removeFromRight(rightW - 8);

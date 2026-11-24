@@ -423,11 +423,8 @@ void EFXDrawerComponent::resized() {
 void EFXDrawerComponent::paintEqCurve(juce::Graphics& g, juce::Rectangle<float> area) {
     if (area.isEmpty()) return;
 
-    // Studio dark glass screen
-    g.setColour(FreePitchLookAndFeel::kBackgroundDark);
-    g.fillRoundedRectangle(area, 4.0f);
-    g.setColour(FreePitchLookAndFeel::kPanelBorder);
-    g.drawRoundedRectangle(area, 4.0f, 1.0f);
+    // Skeuomorphic CRT / LCD monitor screen bezel
+    FreePitchLookAndFeel::drawNeumorphicSunken(g, area, 5.0f, 3.0f);
 
     float midY = area.getCentreY();
 
@@ -517,15 +514,16 @@ void EFXDrawerComponent::paintEqCurve(juce::Graphics& g, juce::Rectangle<float> 
         g.setColour(FreePitchLookAndFeel::kTextDim);
         g.strokePath(curve, juce::PathStrokeType(1.2f));
     }
+
+    // Glass glare reflection on CRT screen
+    FreePitchLookAndFeel::drawGlassGlare(g, area, 5.0f);
 }
 
 void EFXDrawerComponent::paintCompMeter(juce::Graphics& g, juce::Rectangle<float> area) {
     if (area.isEmpty()) return;
 
-    g.setColour(FreePitchLookAndFeel::kBackgroundDark);
-    g.fillRoundedRectangle(area, 4.0f);
-    g.setColour(FreePitchLookAndFeel::kPanelBorder);
-    g.drawRoundedRectangle(area, 4.0f, 1.0f);
+    // Skeuomorphic analog meter bezel screen
+    FreePitchLookAndFeel::drawNeumorphicSunken(g, area, 5.0f, 3.0f);
 
     float grDb = m_telemetry.compressorGR_dB;
     float grFrac = std::clamp(grDb / 20.0f, 0.0f, 1.0f); // 0 to 20 dB GR
@@ -563,24 +561,70 @@ void EFXDrawerComponent::paintCompMeter(juce::Graphics& g, juce::Rectangle<float
     juce::String grText = "GAIN REDUCTION: -" + juce::String(grDb, 1) + " dB";
     g.drawText(grText, static_cast<int>(area.getX()), static_cast<int>(meterTrack.getBottom() + 4),
                static_cast<int>(area.getWidth()), 16, juce::Justification::centred);
+
+    // Convex glass reflection on meter lens
+    FreePitchLookAndFeel::drawGlassGlare(g, area, 5.0f);
+}
+
+void EFXDrawerComponent::updateThemeColors() {
+    auto updateKnob = [](std::unique_ptr<RotaryKnob>& k) {
+        if (k) k->updateThemeColors();
+    };
+
+    updateKnob(m_eqHpfKnob);
+    updateKnob(m_eqLowMidGainKnob);
+    updateKnob(m_eqHighMidGainKnob);
+    updateKnob(m_eqAirGainKnob);
+    updateKnob(m_eqOutGainKnob);
+
+    updateKnob(m_compThreshKnob);
+    updateKnob(m_compRatioKnob);
+    updateKnob(m_compAttackKnob);
+    updateKnob(m_compReleaseKnob);
+    updateKnob(m_compMakeupKnob);
+
+    updateKnob(m_flangerRateKnob);
+    updateKnob(m_flangerDepthKnob);
+    updateKnob(m_flangerFeedbackKnob);
+    updateKnob(m_flangerMixKnob);
+
+    updateKnob(m_chorusRateKnob);
+    updateKnob(m_chorusDepthKnob);
+    updateKnob(m_haasDelayKnob);
+    updateKnob(m_haasWidthKnob);
+    updateKnob(m_chorusMixKnob);
+
+    updateKnob(m_distDriveKnob);
+    updateKnob(m_distToneKnob);
+    updateKnob(m_distMixKnob);
+
+    updateKnob(m_delayTimeKnob);
+    updateKnob(m_delayFeedbackKnob);
+    updateKnob(m_delayFreqShiftKnob);
+    updateKnob(m_delayDiffusionKnob);
+    updateKnob(m_delayMixKnob);
+    updateKnob(m_delayToneKnob);
+
+    repaint();
 }
 
 void EFXDrawerComponent::paint(juce::Graphics& g) {
     if (m_activeBayArea.isEmpty()) return;
 
-    // Active Rack Bay Container
-    g.setColour(FreePitchLookAndFeel::kPanelCard);
-    g.fillRoundedRectangle(m_activeBayArea, 5.0f);
-    g.setColour(FreePitchLookAndFeel::kPanelBorder);
-    g.drawRoundedRectangle(m_activeBayArea, 5.0f, 1.0f);
+    const auto& p = FreePitchLookAndFeel::getPalette();
 
-    // Highlight active tab with glowing cyan bottom underline
+    // 1. Skeuomorphic Rack Bay Container (Sunken Channel Bay)
+    FreePitchLookAndFeel::drawNeumorphicSunken(g, m_activeBayArea, 6.0f, 3.0f);
+
+    // 2. Highlight active tab with glowing cyan neon status bar
     float tabWidth = static_cast<float>(getWidth() - 4) / 6.0f;
     float activeTabX = 2.0f + static_cast<float>(m_activeTab - 1) * tabWidth;
-    g.setColour(FreePitchLookAndFeel::kAccentCyan);
-    g.fillRect(activeTabX + 2.0f, 32.0f, tabWidth - 4.0f, 2.5f);
+    g.setColour(p.accentCyan.withAlpha(0.35f));
+    g.fillRect(activeTabX + 2.0f, 31.0f, tabWidth - 4.0f, 4.0f);
+    g.setColour(p.accentCyan);
+    g.fillRect(activeTabX + 4.0f, 32.0f, tabWidth - 8.0f, 2.5f);
 
-    // Specific Module Visualizations using stored responsive bounds
+    // 3. Specific Module Visualizations using stored responsive bounds
     if (m_activeTab == 1) { // EQ
         paintEqCurve(g, m_eqCurveArea);
     } else if (m_activeTab == 2) { // Compressor
@@ -589,9 +633,9 @@ void EFXDrawerComponent::paint(juce::Graphics& g) {
         // Mono-compatibility caution badge
         auto badgeArea = juce::Rectangle<float>(m_activeBayArea.getX() + 180.0f, m_activeBayArea.getY() + 6.0f,
                                                 m_activeBayArea.getWidth() - 190.0f, 24.0f);
-        g.setColour(FreePitchLookAndFeel::kIndicatorWarning.withAlpha(0.2f));
+        g.setColour(p.indicatorWarning.withAlpha(0.2f));
         g.fillRoundedRectangle(badgeArea, 3.0f);
-        g.setColour(FreePitchLookAndFeel::kIndicatorWarning);
+        g.setColour(p.indicatorWarning);
         g.drawRoundedRectangle(badgeArea, 3.0f, 1.0f);
         g.setFont(juce::FontOptions(10.0f, juce::Font::bold));
         g.drawText("MONO CAUTION: DELAY > 18ms", badgeArea, juce::Justification::centred);
