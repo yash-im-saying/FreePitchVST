@@ -169,6 +169,17 @@ Engineered using C++20 and JUCE 8, adhering to strict real-time audio thread saf
   - **Deployment:**
     - Release build compiled and hot-swapped into `C:\Program Files\Common Files\VST3\FreePitch.vst3\Contents\x86_64-win\FreePitch.vst3` and `Contents\Resources\moduleinfo.json`. Standalone binary also built.
 
+- **Milestone 16: Complete Modern Studio UI Overhaul, Modular Rack Bay & Tooltip System:**
+  - **Modern Studio Color Palette:** Deep obsidian chassis (`#0C0E12`), studio rack bay (`#13161C`), elevated cards (`#191D26`), neon electric cyan (`#00D2FF`), warm studio amber/gold (`#F59E0B`), and emerald in-tune indicator (`#10B981`).
+  - **Tactile 3D Studio Knobs:** Metallic dial caps with linear gradient, machined bevel rim, glowing needle indicator, illuminated arc trails, and hover glow. Hero styling for Retune Speed.
+  - **Pitch Radar HUD (`CircularPitchMeter`):** Dark glass HUD bezel with $\pm 50\text{ cents}$ radial compass scale, hero detected note badge (e.g. `C#4`), dynamic cents deviation pill (`IN TUNE`, `-12 ct`, `+18 ct`), live Hz readout, and pulsing voiced aura.
+  - **Interactive 61-Key Studio Piano (`PianoKeyboardComponent`):** Crisp ivory white keys and matte ebony black keys, active scale note markers, real-time live sung note tracking with neon cyan glow on the active key, and interactive 1-click scale note editing.
+  - **Modular Studio EFX Rack Bay (`EFXDrawerComponent`):** Replaced vertical accordion squeeze with a top horizontal tab bar (`EQ`, `COMP`, `FLANGE`, `CHORUS`, `DRIVE`, `DELAY`) with illuminated LED power pips. Dedicated, spacious studio bay for each module with interactive frequency curve, live gain reduction meter, and analog tape delay controls.
+  - **Comprehensive Studio Tooltip System:** Built-in `juce::TooltipWindow` with custom dark glass styling, offering detailed musical guidance, suggested parameter settings, and tooltips on every knob, button, dropdown, and keyboard key.
+  - **Automated Verification:** 21/21 DSP unit tests passing (100%).
+  - **Deployment & Git Branches:** Pushed original code to `legacyui` branch, created and pushed updated UI code to `newui` branch at `https://github.com/yash-im-saying/FreePitchVST`.
+
+
   - **Audio Dropouts & Glitches Fix:**
     - Root cause in `PitchShifter.cpp`: The synthesis loop evaluated synthesis marks against future uninitialized samples, while the output pointer read from a delayed position, creating a 240+ sample phase misalignment and buffer starvation between unvoiced bypass and voiced PSOLA. Re-architected with exact causal time alignment: both unvoiced bypass and voiced PSOLA are read at `outIdx = currentSample - m_latencySamples`, guaranteeing 100% phase lock and continuous audio.
     - Added 64-bit monotonic sample counter (`int64_t m_writeSampleCount`) and power-of-2 bitmasking (`& 0x7FFF` on 32768-sample buffer) eliminating pointer wrap freeze.
@@ -255,4 +266,15 @@ Engineered using C++20 and JUCE 8, adhering to strict real-time audio thread saf
     - All 21 tests in `DSPUnitTests.cpp` passing with 100% success (including Test 5 no-crackle, Test 9 small buffers, Test 10 zero rotary flutter, Test 11 EFX rack, Test 12 formant transparency and +6st rich warping, Test 13 Space Delay timing and diffusion).
   - **Deployment:**
     - Release build compiled and hot-swapped into `C:\Program Files\Common Files\VST3\FreePitch.vst3\Contents\x86_64-win\FreePitch.vst3` and `Contents\Resources\moduleinfo.json`. Standalone binary also built.
+
+- **Milestone 16: Complete Modern Studio UI Overhaul, Modular Rack Bay & Tooltip System:**
+  - **Modern Studio Color Palette:** Deep obsidian chassis (`#0C0E12`), studio rack bay (`#13161C`), elevated cards (`#191D26`), neon electric cyan (`#00D2FF`), warm studio amber/gold (`#F59E0B`), and emerald in-tune indicator (`#10B981`).
+  - **Tactile 3D Studio Knobs:** Metallic dial caps with linear gradient, machined bevel rim, glowing needle indicator, illuminated arc trails, and hover glow. Hero styling for Retune Speed.
+  - **Pitch Radar HUD (`CircularPitchMeter`):** Dark glass HUD bezel with $\pm 50\text{ cents}$ radial compass scale, hero detected note badge (e.g. `C#4`), dynamic cents deviation pill (`IN TUNE`, `-12 ct`, `+18 ct`), live Hz readout, and pulsing voiced aura.
+  - **Interactive 61-Key Studio Piano (`PianoKeyboardComponent`):** Crisp ivory white keys and matte ebony black keys, active scale note markers, real-time live sung note tracking with neon cyan glow on the active key, and interactive 1-click scale note editing.
+  - **Modular Studio EFX Rack Bay (`EFXDrawerComponent`):** Replaced vertical accordion squeeze with a top horizontal tab bar (`EQ`, `COMP`, `FLANGE`, `CHORUS`, `DRIVE`, `DELAY`) with illuminated LED power pips. Dedicated, spacious studio bay for each module with interactive frequency curve, live gain reduction meter, and analog tape delay controls.
+  - **Comprehensive Studio Tooltip System:** Built-in `juce::TooltipWindow` with custom dark glass styling, offering detailed musical guidance, suggested parameter settings, and tooltips on every knob, button, dropdown, and keyboard key.
+  - **Automated Verification:** 21/21 DSP unit tests passing (100%).
+  - **Deployment & Git Branches:** Pushed original code to `legacyui` branch, created and pushed updated UI code to `newui` branch at `https://github.com/yash-im-saying/FreePitchVST`.
+
 

@@ -1,6 +1,7 @@
 #include "PianoKeyboardComponent.h"
 
 PianoKeyboardComponent::PianoKeyboardComponent() {
+    setTooltip("Piano Keyboard: Displays active scale notes and tracks sung pitch in real time. Click any key to toggle it in or out of the scale.");
 }
 
 void PianoKeyboardComponent::setVocalMode(VocalMode mode) {
@@ -76,15 +77,15 @@ int PianoKeyboardComponent::getMidiFromPosition(float x, float y) const {
     if (numWhiteKeys <= 0) return -1;
 
     float whiteKeyWidth = static_cast<float>(getWidth()) / static_cast<float>(numWhiteKeys);
-    float blackKeyHeight = getHeight() * 0.60f;
+    float blackKeyHeight = getHeight() * 0.62f;
 
-    // Check black keys first if y is in top 60%
+    // Check black keys first if y is in top 62%
     if (y < blackKeyHeight) {
         int whiteIndex = 0;
         for (int m = kStartMidi; m <= kEndMidi; ++m) {
             if (isBlackKey(m)) {
                 float blackCenterX = static_cast<float>(whiteIndex) * whiteKeyWidth;
-                float blackWidth = whiteKeyWidth * 0.65f;
+                float blackWidth = whiteKeyWidth * 0.68f;
                 if (x >= blackCenterX - blackWidth * 0.5f && x <= blackCenterX + blackWidth * 0.5f) {
                     return m;
                 }
@@ -117,8 +118,8 @@ void PianoKeyboardComponent::paint(juce::Graphics& g) {
         if (!isBlackKey(m)) numWhiteKeys++;
     }
     float whiteKeyWidth = bounds.getWidth() / static_cast<float>(numWhiteKeys);
-    float blackKeyHeight = bounds.getHeight() * 0.60f;
-    float blackKeyWidth = whiteKeyWidth * 0.65f;
+    float blackKeyHeight = bounds.getHeight() * 0.62f;
+    float blackKeyWidth = whiteKeyWidth * 0.68f;
 
     // 1. Draw White Keys
     int whiteIdx = 0;
@@ -132,31 +133,47 @@ void PianoKeyboardComponent::paint(juce::Graphics& g) {
             bool isDetected = (m_isVoiced && m == m_detectedMidi);
             bool isTarget = (m_isVoiced && m == m_targetMidi);
 
-            juce::Colour keyColor = juce::Colour(0xFFDCE0E6); // Clean ivory off-white
+            // Ivory vertical gradient
+            juce::Colour topCol = juce::Colour(0xFFF1F5F9);
+            juce::Colour botCol = juce::Colour(0xFFE2E8F0);
+
             if (!inVocalRange) {
-                keyColor = juce::Colour(0xFF4A4E57); // Dimmed outside range
+                topCol = juce::Colour(0xFF333842);
+                botCol = juce::Colour(0xFF282C35);
             } else if (!inScale) {
-                keyColor = juce::Colour(0xFF8B929E); // Muted if excluded from scale
+                topCol = juce::Colour(0xFF6B7280);
+                botCol = juce::Colour(0xFF555B68);
             }
 
             if (isTarget) {
-                keyColor = FreePitchLookAndFeel::kAccentAmber; // Glowing target note
+                topCol = FreePitchLookAndFeel::kAccentAmber;
+                botCol = FreePitchLookAndFeel::kAccentAmber.darker(0.2f);
             } else if (isDetected) {
-                keyColor = FreePitchLookAndFeel::kIndicatorFlat; // Detected note
+                topCol = FreePitchLookAndFeel::kAccentCyan;
+                botCol = FreePitchLookAndFeel::kAccentCyan.darker(0.2f);
             }
 
-            g.setColour(keyColor);
+            juce::ColourGradient grad(topCol, kx, 0.0f, botCol, kx, bounds.getHeight(), false);
+            g.setGradientFill(grad);
             g.fillRect(keyRect);
 
-            // 1px hairline border between keys
+            // Active scale note indicator dot at bottom of in-scale white keys
+            if (inScale && inVocalRange && !isTarget && !isDetected) {
+                float dotRadius = 2.5f;
+                g.setColour(FreePitchLookAndFeel::kAccentCyan.withAlpha(0.65f));
+                g.fillEllipse(kx + whiteKeyWidth * 0.5f - dotRadius, bounds.getHeight() - 18.0f,
+                              dotRadius * 2.0f, dotRadius * 2.0f);
+            }
+
+            // Hairline separator between keys
             g.setColour(FreePitchLookAndFeel::kBackgroundDark);
             g.drawRect(keyRect, 1.0f);
 
-            // Print Note Name (e.g. C2, C3, C4) on C notes
+            // Print Note Name (e.g. C1, C2, C3, C4, C5, C6) on C keys
             if (m % 12 == 0) {
                 int oct = (m / 12) - 1;
-                g.setColour(FreePitchLookAndFeel::kBackgroundDark);
-                g.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 9.0f, juce::Font::bold));
+                g.setColour(isTarget || isDetected ? juce::Colours::black : FreePitchLookAndFeel::kTextDim);
+                g.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 9.5f, juce::Font::bold));
                 g.drawText("C" + juce::String(oct), keyRect.removeFromBottom(12.0f), juce::Justification::centred);
             }
 
@@ -176,31 +193,45 @@ void PianoKeyboardComponent::paint(juce::Graphics& g) {
             bool isDetected = (m_isVoiced && m == m_detectedMidi);
             bool isTarget = (m_isVoiced && m == m_targetMidi);
 
-            juce::Colour blackColor = juce::Colour(0xFF1D2025); // Matte graphite
+            juce::Colour topCol = juce::Colour(0xFF222630);
+            juce::Colour botCol = juce::Colour(0xFF12141A);
+
             if (!inVocalRange) {
-                blackColor = juce::Colour(0xFF141619);
+                topCol = juce::Colour(0xFF14171E);
+                botCol = juce::Colour(0xFF0C0E12);
             } else if (!inScale) {
-                blackColor = juce::Colour(0xFF2C313A);
+                topCol = juce::Colour(0xFF2D3340);
+                botCol = juce::Colour(0xFF1A1E26);
             }
 
             if (isTarget) {
-                blackColor = FreePitchLookAndFeel::kAccentAmber;
+                topCol = FreePitchLookAndFeel::kAccentAmber;
+                botCol = FreePitchLookAndFeel::kAccentAmber.darker(0.3f);
             } else if (isDetected) {
-                blackColor = FreePitchLookAndFeel::kIndicatorFlat;
+                topCol = FreePitchLookAndFeel::kAccentCyan;
+                botCol = FreePitchLookAndFeel::kAccentCyan.darker(0.3f);
             }
 
-            g.setColour(blackColor);
-            g.fillRect(blackRect);
+            juce::ColourGradient blackGrad(topCol, blackRect.getX(), 0.0f, botCol, blackRect.getX(), blackKeyHeight, false);
+            g.setGradientFill(blackGrad);
+            g.fillRoundedRectangle(blackRect.reduced(0.5f, 0.0f), 2.0f);
+
+            // Active scale note dot on black keys
+            if (inScale && inVocalRange && !isTarget && !isDetected) {
+                float dotRadius = 2.0f;
+                g.setColour(FreePitchLookAndFeel::kAccentCyan.withAlpha(0.65f));
+                g.fillEllipse(blackCenterX - dotRadius, blackKeyHeight - 10.0f,
+                              dotRadius * 2.0f, dotRadius * 2.0f);
+            }
 
             g.setColour(FreePitchLookAndFeel::kBackgroundDark);
-            g.drawRect(blackRect, 1.0f);
+            g.drawRoundedRectangle(blackRect.reduced(0.5f, 0.0f), 2.0f, 1.0f);
         } else {
             whiteIdx++;
         }
     }
 
-    // 3. Crisp Range Brackets for active Vocal Range Mode
-    // Find left coordinate of minVocalMidi and right coordinate of maxVocalMidi
+    // 3. Crisp Vocal Range Bounds Bracket across top of keyboard
     float rangeX1 = 0.0f;
     float rangeX2 = bounds.getWidth();
     whiteIdx = 0;
@@ -216,9 +247,8 @@ void PianoKeyboardComponent::paint(juce::Graphics& g) {
         }
     }
 
-    // Hairline range bracket across top of keyboard
     g.setColour(FreePitchLookAndFeel::kAccentAmber);
     g.drawHorizontalLine(1, rangeX1, rangeX2);
-    g.drawVerticalLine(static_cast<int>(rangeX1), 0.0f, 6.0f);
-    g.drawVerticalLine(static_cast<int>(rangeX2), 0.0f, 6.0f);
+    g.drawVerticalLine(static_cast<int>(rangeX1), 0.0f, 7.0f);
+    g.drawVerticalLine(static_cast<int>(rangeX2), 0.0f, 7.0f);
 }

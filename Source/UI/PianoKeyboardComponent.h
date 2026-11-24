@@ -5,7 +5,8 @@
 #include "FreePitchLookAndFeel.h"
 #include <functional>
 
-class PianoKeyboardComponent : public juce::Component {
+class PianoKeyboardComponent : public juce::Component,
+                               public juce::SettableTooltipClient {
 public:
     PianoKeyboardComponent();
     ~PianoKeyboardComponent() override = default;

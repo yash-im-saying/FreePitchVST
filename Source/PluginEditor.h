@@ -23,8 +23,12 @@ private:
     FreePitchAudioProcessor& m_processor;
     FreePitchLookAndFeel m_lookAndFeel;
 
+    // Integrated Studio Tooltip Window
+    juce::TooltipWindow m_tooltipWindow { this, 400 };
+
     // --- Top Bar Components ---
     juce::Label m_titleLabel;
+    juce::Label m_subtitleLabel;
     juce::Label m_versionLabel;
 
     // Presets
@@ -46,10 +50,10 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> m_scaleTypeAttachment;
 
     // Master EFX Bypass
-    juce::ToggleButton m_masterEfxToggle { "EFX" };
+    juce::ToggleButton m_masterEfxToggle { "MASTER EFX" };
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> m_masterEfxAttachment;
 
-    // --- Left Control Bank ---
+    // --- Left Control Bank (Tuning Dynamics) ---
     std::unique_ptr<RotaryKnob> m_retuneSpeedKnob;
     std::unique_ptr<RotaryKnob> m_humanizeKnob;
     std::unique_ptr<RotaryKnob> m_flexTuneKnob;
@@ -57,14 +61,14 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> m_humanizeAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> m_flexTuneAttachment;
 
-    // --- Center Focal Point ---
+    // --- Center Focal Point (Pitch Radar) ---
     CircularPitchMeter m_circularMeter;
     juce::ComboBox m_vocalModeBox;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> m_vocalModeAttachment;
     juce::ToggleButton m_choosyTrackingToggle { "CHOOSY TRACKING" };
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> m_choosyTrackingAttachment;
 
-    // --- Right Control Bank ---
+    // --- Right Control Bank (Tone & Modular EFX) ---
     std::unique_ptr<RotaryKnob> m_pitchShiftKnob;
     juce::Label m_formantsTitleLabel;
     juce::ToggleButton m_formantsToggle { "PRESERVE" };
@@ -74,12 +78,12 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> m_formantsAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> m_formantShiftAttachment;
 
-    // Confidence / Voiced Meter Bar
+    // Voiced Confidence Meter
     float m_smoothConfidence = 0.0f;
     float m_smoothInputRms = -100.0f;
     juce::Rectangle<float> m_confidenceMeterBounds;
 
-    // Modular Post-Pitch EFX Rack
+    // Modular Post-Pitch EFX Rack Bay
     EFXDrawerComponent m_efxDrawer;
 
     // --- Bottom Piano Keyboard ---

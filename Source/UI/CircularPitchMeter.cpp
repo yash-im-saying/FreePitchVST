@@ -3,22 +3,24 @@
 #include <algorithm>
 
 CircularPitchMeter::CircularPitchMeter() {
+    setTooltip("Live Pitch Radar: Displays real-time pitch detection, cents deviation, in-tune status, and applied correction.");
 }
 
 void CircularPitchMeter::updateTelemetry(const PitchTelemetry& telemetry) {
     m_currentTelemetry = telemetry;
 
-    // Damped ballistics for smooth 60fps rendering
-    float alpha = 0.25f;
+    float alpha = 0.28f;
     if (telemetry.isVoiced) {
         m_smoothCentsDev += alpha * (telemetry.centsDeviation - m_smoothCentsDev);
         m_smoothAppliedCorr += alpha * (telemetry.appliedCorrectionCents - m_smoothAppliedCorr);
         m_smoothConfidence += alpha * (telemetry.voicedConfidence - m_smoothConfidence);
+        m_smoothFrequency += alpha * (telemetry.detectedFreqHz - m_smoothFrequency);
     } else {
-        // Decay to zero when unvoiced
-        m_smoothCentsDev *= 0.85f;
-        m_smoothAppliedCorr *= 0.85f;
-        m_smoothConfidence *= 0.80f;
+        // Smoothly decay towards zero when unvoiced
+        m_smoothCentsDev *= 0.82f;
+        m_smoothAppliedCorr *= 0.82f;
+        m_smoothConfidence *= 0.78f;
+        m_smoothFrequency *= 0.85f;
     }
 
     repaint();
@@ -36,112 +38,210 @@ juce::String CircularPitchMeter::midiToNoteName(int midiNote) {
 }
 
 void CircularPitchMeter::paint(juce::Graphics& g) {
-    auto bounds = getLocalBounds().toFloat().reduced(10.0f);
+    auto bounds = getLocalBounds().toFloat().reduced(8.0f);
     float centreX = bounds.getCentreX();
     float centreY = bounds.getCentreY();
     float radius = std::min(bounds.getWidth(), bounds.getHeight()) * 0.5f;
 
-    // 1. Dark sub-panel circle
-    g.setColour(FreePitchLookAndFeel::kPanelGraphite);
+    bool isVoiced = m_currentTelemetry.isVoiced && (m_smoothConfidence > 0.15f);
+
+    // 1. Outer Chassis Halo / Bezel
+    g.setColour(FreePitchLookAndFeel::kPanelDark);
     g.fillEllipse(centreX - radius, centreY - radius, radius * 2.0f, radius * 2.0f);
+
+    // Soft drop shadow inside perimeter
+    g.setColour(juce::Colours::black.withAlpha(0.6f));
+    g.drawEllipse(centreX - radius, centreY - radius, radius * 2.0f, radius * 2.0f, 2.5f);
 
     g.setColour(FreePitchLookAndFeel::kPanelBorder);
     g.drawEllipse(centreX - radius, centreY - radius, radius * 2.0f, radius * 2.0f, 1.0f);
 
-    // 2. Dial scale markings (-50 ct to +50 ct across a 180-degree sweep from -90 deg to +90 deg, TDC at top)
-    // TDC (0 ct) is angle 0.0 (top)
-    float maxAngle = juce::MathConstants<float>::pi * 0.55f; // ~100 degrees left & right
+    // 2. Pitch Dial Scale Markings (-50 ct to +50 ct across a 190-degree sweep)
+    float maxAngle = juce::MathConstants<float>::pi * 0.55f; // ~99 degrees left & right of TDC
+    float trackRadius = radius - 14.0f;
 
     // Background track arc
-    juce::Path bgArc;
-    float trackRadius = radius - 14.0f;
-    bgArc.addCentredArc(centreX, centreY, trackRadius, trackRadius, 0.0f, -maxAngle, maxAngle, true);
-    g.setColour(FreePitchLookAndFeel::kPanelBorder);
-    g.strokePath(bgArc, juce::PathStrokeType(3.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+    if (trackRadius > 10.0f) {
+        juce::Path bgArc;
+        bgArc.addCentredArc(centreX, centreY, trackRadius, trackRadius, 0.0f, -maxAngle, maxAngle, true);
+        g.setColour(FreePitchLookAndFeel::kPanelBorder);
+        g.strokePath(bgArc, juce::PathStrokeType(4.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+    }
 
-    // Tick marks: -50, -25, 0, +25, +50
+    // Tick Marks (-50, -25, 0, +25, +50)
     for (int ct = -50; ct <= 50; ct += 25) {
         float angle = (static_cast<float>(ct) / 50.0f) * maxAngle;
-        float tickInner = trackRadius - 6.0f;
-        float tickOuter = trackRadius + 6.0f;
+        float tickInner = trackRadius - 8.0f;
+        float tickOuter = trackRadius + 7.0f;
 
         float x1 = centreX + std::sin(angle) * tickInner;
         float y1 = centreY - std::cos(angle) * tickInner;
         float x2 = centreX + std::sin(angle) * tickOuter;
         float y2 = centreY - std::cos(angle) * tickOuter;
 
-        g.setColour(ct == 0 ? FreePitchLookAndFeel::kAccentAmber : FreePitchLookAndFeel::kTextMuted);
-        g.drawLine(x1, y1, x2, y2, ct == 0 ? 2.0f : 1.0f);
+        if (ct == 0) {
+            // Zero cent marker (In-Tune Target)
+            g.setColour(FreePitchLookAndFeel::kAccentAmber);
+            g.drawLine(x1, y1, x2, y2, 2.5f);
+
+            // Glowing diamond pip at TDC
+            float pipY = centreY - trackRadius - 9.0f;
+            g.setColour(FreePitchLookAndFeel::kAccentAmber.withAlpha(0.85f));
+            g.fillEllipse(centreX - 2.5f, pipY - 2.5f, 5.0f, 5.0f);
+        } else {
+            g.setColour(FreePitchLookAndFeel::kTextDim);
+            g.drawLine(x1, y1, x2, y2, 1.2f);
+        }
+    }
+
+    // Cent labels (-50, -25, 0, +25, +50)
+    g.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 9.0f, juce::Font::bold));
+    for (int ct = -50; ct <= 50; ct += 25) {
+        float angle = (static_cast<float>(ct) / 50.0f) * maxAngle;
+        float labelR = trackRadius + 16.0f;
+        float lx = centreX + std::sin(angle) * labelR;
+        float ly = centreY - std::cos(angle) * labelR;
+
+        juce::String str = (ct > 0 ? "+" : "") + juce::String(ct);
+        g.setColour(ct == 0 ? FreePitchLookAndFeel::kAccentAmber : FreePitchLookAndFeel::kTextDim);
+        g.drawText(str, static_cast<int>(lx - 15.0f), static_cast<int>(ly - 7.0f), 30, 14,
+                   juce::Justification::centred);
     }
 
     // 3. Incoming Pitch Deviation Arc (Outer Track)
-    // Range: -50 ct to +50 ct clamped
     float clampedDev = std::clamp(m_smoothCentsDev, -50.0f, 50.0f);
     float devAngle = (clampedDev / 50.0f) * maxAngle;
 
-    if (std::abs(clampedDev) > 0.5f && m_smoothConfidence > 0.15f) {
+    if (std::abs(clampedDev) > 0.4f && isVoiced && trackRadius > 10.0f) {
         juce::Path devArc;
+        juce::Colour arcColor = (devAngle < 0.0f) ? FreePitchLookAndFeel::kIndicatorFlat : FreePitchLookAndFeel::kIndicatorSharp;
+        float alphaVal = std::clamp(m_smoothConfidence, 0.3f, 1.0f);
+
         if (devAngle < 0.0f) {
             devArc.addCentredArc(centreX, centreY, trackRadius, trackRadius, 0.0f, devAngle, 0.0f, true);
-            g.setColour(FreePitchLookAndFeel::kIndicatorFlat.withAlpha(std::clamp(m_smoothConfidence, 0.2f, 1.0f)));
         } else {
             devArc.addCentredArc(centreX, centreY, trackRadius, trackRadius, 0.0f, 0.0f, devAngle, true);
-            g.setColour(FreePitchLookAndFeel::kIndicatorSharp.withAlpha(std::clamp(m_smoothConfidence, 0.2f, 1.0f)));
         }
-        g.strokePath(devArc, juce::PathStrokeType(4.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+
+        // Glowing outer arc
+        g.setColour(arcColor.withAlpha(0.35f * alphaVal));
+        g.strokePath(devArc, juce::PathStrokeType(8.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+
+        g.setColour(arcColor.withAlpha(alphaVal));
+        g.strokePath(devArc, juce::PathStrokeType(4.5f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
     }
 
-    // 4. Secondary Applied Correction Arc (Inner Track)
-    float corrTrackRadius = trackRadius - 10.0f;
+    // 4. Applied Correction Arc (Inner Track)
+    float corrRadius = trackRadius - 9.0f;
     float clampedCorr = std::clamp(m_smoothAppliedCorr, -50.0f, 50.0f);
     float corrAngle = (clampedCorr / 50.0f) * maxAngle;
 
-    if (std::abs(clampedCorr) > 0.5f && m_smoothConfidence > 0.15f) {
+    if (std::abs(clampedCorr) > 0.4f && isVoiced && corrRadius > 10.0f) {
         juce::Path corrArc;
         if (corrAngle < 0.0f) {
-            corrArc.addCentredArc(centreX, centreY, corrTrackRadius, corrTrackRadius, 0.0f, corrAngle, 0.0f, true);
+            corrArc.addCentredArc(centreX, centreY, corrRadius, corrRadius, 0.0f, corrAngle, 0.0f, true);
         } else {
-            corrArc.addCentredArc(centreX, centreY, corrTrackRadius, corrTrackRadius, 0.0f, 0.0f, corrAngle, true);
+            corrArc.addCentredArc(centreX, centreY, corrRadius, corrRadius, 0.0f, 0.0f, corrAngle, true);
         }
-        g.setColour(FreePitchLookAndFeel::kAccentAmber.withAlpha(std::clamp(m_smoothConfidence * 0.9f, 0.2f, 0.9f)));
-        g.strokePath(corrArc, juce::PathStrokeType(2.5f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+        g.setColour(FreePitchLookAndFeel::kAccentAmber.withAlpha(0.90f));
+        g.strokePath(corrArc, juce::PathStrokeType(3.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
     }
 
-    // 5. In-Tune Indicator Pip at TDC (glowing green/amber when within +-3 cents)
-    if (m_currentTelemetry.isVoiced && std::abs(m_currentTelemetry.centsDeviation) <= 3.0f) {
-        g.setColour(FreePitchLookAndFeel::kIndicatorInTune);
-        g.fillEllipse(centreX - 3.5f, centreY - trackRadius - 3.5f, 7.0f, 7.0f);
+    // 5. Central Note Display Glass Disc
+    float centerDiscRadius = radius * 0.54f;
+    juce::Rectangle<float> centerDisc(centreX - centerDiscRadius, centreY - centerDiscRadius,
+                                      centerDiscRadius * 2.0f, centerDiscRadius * 2.0f);
+
+    // Glowing Voiced Aura
+    if (isVoiced) {
+        float auraAlpha = std::clamp(m_smoothConfidence * 0.35f, 0.05f, 0.35f);
+        juce::Colour auraColor = (std::abs(m_smoothCentsDev) <= 5.0f)
+                                 ? FreePitchLookAndFeel::kIndicatorInTune
+                                 : FreePitchLookAndFeel::kAccentCyan;
+        g.setColour(auraColor.withAlpha(auraAlpha));
+        g.fillEllipse(centerDisc.expanded(8.0f));
     }
 
-    // 6. Central Readout Hub
-    float hubRadius = radius * 0.52f;
-    juce::Rectangle<float> hubBounds(centreX - hubRadius, centreY - hubRadius + 12.0f, hubRadius * 2.0f, hubRadius * 2.0f);
-    g.setColour(FreePitchLookAndFeel::kBackgroundDark);
-    g.fillEllipse(hubBounds);
-    g.setColour(FreePitchLookAndFeel::kPanelBorder);
-    g.drawEllipse(hubBounds, 1.0f);
+    // Dark glass disc body with gradient
+    juce::ColourGradient discGrad(FreePitchLookAndFeel::kPanelCard, centreX, centerDisc.getY(),
+                                  FreePitchLookAndFeel::kBackgroundDark, centreX, centerDisc.getBottom(), false);
+    g.setGradientFill(discGrad);
+    g.fillEllipse(centerDisc);
 
-    // Large Detected Note Readout (e.g. "A4")
-    juce::String noteStr = m_currentTelemetry.isVoiced ? midiToNoteName(m_currentTelemetry.detectedMidi) : "--";
-    g.setColour(m_currentTelemetry.isVoiced ? FreePitchLookAndFeel::kTextWhite : FreePitchLookAndFeel::kTextDim);
-    g.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 36.0f, juce::Font::bold));
-    g.drawText(noteStr, juce::Rectangle<float>(centreX - hubRadius, centreY - 14.0f, hubRadius * 2.0f, 38.0f), juce::Justification::centred);
+    // Disc border (highlighted if in tune)
+    if (isVoiced && std::abs(m_smoothCentsDev) <= 5.0f) {
+        g.setColour(FreePitchLookAndFeel::kIndicatorInTune.withAlpha(0.7f));
+        g.drawEllipse(centerDisc, 1.5f);
+    } else {
+        g.setColour(FreePitchLookAndFeel::kPanelBorderLight);
+        g.drawEllipse(centerDisc, 1.0f);
+    }
 
-    // Frequency & Cents in Tabular Monospace
-    g.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 11.5f, juce::Font::plain));
-    if (m_currentTelemetry.isVoiced) {
-        juce::String freqStr = juce::String(m_currentTelemetry.detectedFreqHz, 1) + " Hz";
-        g.setColour(FreePitchLookAndFeel::kTextMuted);
-        g.drawText(freqStr, juce::Rectangle<float>(centreX - hubRadius, centreY + 24.0f, hubRadius * 2.0f, 16.0f), juce::Justification::centred);
+    // 6. Center Hero Note Display
+    juce::String noteName = isVoiced ? midiToNoteName(m_currentTelemetry.targetMidi) : "--";
 
-        int centsVal = static_cast<int>(std::round(m_currentTelemetry.centsDeviation));
-        juce::String centsStr = (centsVal > 0 ? "+" : "") + juce::String(centsVal) + " ct";
-        juce::Colour centsCol = (std::abs(centsVal) <= 3) ? FreePitchLookAndFeel::kIndicatorInTune :
-                                (centsVal < 0 ? FreePitchLookAndFeel::kIndicatorFlat : FreePitchLookAndFeel::kIndicatorSharp);
-        g.setColour(centsCol);
-        g.drawText(centsStr, juce::Rectangle<float>(centreX - hubRadius, centreY + 40.0f, hubRadius * 2.0f, 16.0f), juce::Justification::centred);
+    g.setFont(juce::FontOptions(juce::Font::getDefaultSansSerifFontName(), centerDiscRadius * 0.70f, juce::Font::bold));
+    if (isVoiced) {
+        if (std::abs(m_smoothCentsDev) <= 5.0f) {
+            g.setColour(FreePitchLookAndFeel::kIndicatorInTune);
+        } else {
+            g.setColour(FreePitchLookAndFeel::kTextWhite);
+        }
     } else {
         g.setColour(FreePitchLookAndFeel::kTextDim);
-        g.drawText("UNVOICED", juce::Rectangle<float>(centreX - hubRadius, centreY + 26.0f, hubRadius * 2.0f, 16.0f), juce::Justification::centred);
+    }
+
+    float noteY = centreY - centerDiscRadius * 0.48f;
+    g.drawText(noteName, static_cast<int>(centreX - centerDiscRadius), static_cast<int>(noteY),
+               static_cast<int>(centerDiscRadius * 2.0f), static_cast<int>(centerDiscRadius * 0.65f),
+               juce::Justification::centred);
+
+    // 7. Cents Deviation Pill Badge below note
+    float pillW = centerDiscRadius * 1.15f;
+    float pillH = 18.0f;
+    float pillX = centreX - pillW * 0.5f;
+    float pillY = centreY + centerDiscRadius * 0.16f;
+    juce::Rectangle<float> pillBounds(pillX, pillY, pillW, pillH);
+
+    juce::String pillText;
+    juce::Colour pillBg;
+    juce::Colour pillTextCol;
+
+    if (isVoiced) {
+        float absDev = std::abs(m_smoothCentsDev);
+        if (absDev <= 4.0f) {
+            pillText = "IN TUNE";
+            pillBg = FreePitchLookAndFeel::kIndicatorInTune.withAlpha(0.20f);
+            pillTextCol = FreePitchLookAndFeel::kIndicatorInTune;
+        } else {
+            int devInt = static_cast<int>(std::round(m_smoothCentsDev));
+            pillText = (devInt > 0 ? "+" : "") + juce::String(devInt) + " ct";
+            pillBg = (devInt < 0) ? FreePitchLookAndFeel::kIndicatorFlat.withAlpha(0.20f)
+                                  : FreePitchLookAndFeel::kIndicatorSharp.withAlpha(0.20f);
+            pillTextCol = (devInt < 0) ? FreePitchLookAndFeel::kIndicatorFlat
+                                       : FreePitchLookAndFeel::kIndicatorSharp;
+        }
+    } else {
+        pillText = "UNVOICED";
+        pillBg = FreePitchLookAndFeel::kPanelDark;
+        pillTextCol = FreePitchLookAndFeel::kTextDim;
+    }
+
+    g.setColour(pillBg);
+    g.fillRoundedRectangle(pillBounds, 9.0f);
+    g.setColour(pillTextCol.withAlpha(0.5f));
+    g.drawRoundedRectangle(pillBounds, 9.0f, 1.0f);
+
+    g.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 10.5f, juce::Font::bold));
+    g.setColour(pillTextCol);
+    g.drawText(pillText, pillBounds.toNearestInt(), juce::Justification::centred);
+
+    // 8. Hz Readout on bottom
+    if (isVoiced && m_smoothFrequency > 20.0f) {
+        g.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 9.5f, juce::Font::plain));
+        g.setColour(FreePitchLookAndFeel::kTextMuted);
+        juce::String hzStr = juce::String(m_smoothFrequency, 1) + " Hz";
+        g.drawText(hzStr, static_cast<int>(centreX - 50.0f), static_cast<int>(pillY + pillH + 2.0f), 100, 14,
+                   juce::Justification::centred);
     }
 }

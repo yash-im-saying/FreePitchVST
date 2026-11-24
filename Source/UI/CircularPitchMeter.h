@@ -4,7 +4,8 @@
 #include "Parameters.h"
 #include "FreePitchLookAndFeel.h"
 
-class CircularPitchMeter : public juce::Component {
+class CircularPitchMeter : public juce::Component,
+                           public juce::SettableTooltipClient {
 public:
     CircularPitchMeter();
     ~CircularPitchMeter() override = default;
@@ -16,10 +17,13 @@ public:
 private:
     PitchTelemetry m_currentTelemetry;
 
-    // Smoothed visual ballistics
+    // Smoothed visual ballistics for 60 FPS animation
     float m_smoothCentsDev = 0.0f;
     float m_smoothAppliedCorr = 0.0f;
     float m_smoothConfidence = 0.0f;
+    float m_smoothFrequency = 0.0f;
 
     static juce::String midiToNoteName(int midiNote);
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(CircularPitchMeter)
 };

@@ -21,23 +21,23 @@ private:
     EFXRack& m_efxRack;
     PitchTelemetry m_telemetry;
 
-    // Slot IDs: 0 = None (collapsed), 1 = EQ, 2 = Comp, 3 = Flanger, 4 = Chorus/Haas, 5 = Dist
-    int m_activeDrawer = 1; // EQ open by default
+    // Active Rack Tab (1 = EQ, 2 = Comp, 3 = Flanger, 4 = Chorus/Haas, 5 = Saturation, 6 = Space Delay)
+    int m_activeTab = 1;
 
-    struct SlotButton {
+    struct ModuleTab {
+        juce::TextButton selectBtn;
         juce::ToggleButton powerBtn;
-        juce::TextButton editBtn;
         std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> powerAttachment;
     };
 
-    SlotButton m_eqSlot;
-    SlotButton m_compSlot;
-    SlotButton m_flangerSlot;
-    SlotButton m_chorusSlot;
-    SlotButton m_distSlot;
-    SlotButton m_delaySlot;
+    ModuleTab m_eqTab;
+    ModuleTab m_compTab;
+    ModuleTab m_flangerTab;
+    ModuleTab m_chorusTab;
+    ModuleTab m_distTab;
+    ModuleTab m_delayTab;
 
-    // --- Inline Drawer Controls ---
+    // --- Module Controls ---
     // EQ Controls
     std::unique_ptr<RotaryKnob> m_eqHpfKnob;
     std::unique_ptr<RotaryKnob> m_eqLowMidGainKnob;
@@ -71,7 +71,7 @@ private:
     std::unique_ptr<RotaryKnob> m_chorusMixKnob;
     std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> m_chorusAttachments;
 
-    // Distortion Controls
+    // Saturation Controls
     juce::ComboBox m_distModeBox;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> m_distModeAttachment;
     std::unique_ptr<RotaryKnob> m_distDriveKnob;
@@ -79,7 +79,7 @@ private:
     std::unique_ptr<RotaryKnob> m_distMixKnob;
     std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> m_distAttachments;
 
-    // Delay / Echo Controls (H-Delay, Supermassive, FreqEcho)
+    // Delay Controls (H-Delay, Supermassive, FreqEcho)
     juce::ComboBox m_delayModeBox;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> m_delayModeAttachment;
     std::unique_ptr<RotaryKnob> m_delayTimeKnob;
@@ -90,10 +90,12 @@ private:
     std::unique_ptr<RotaryKnob> m_delayMixKnob;
     std::vector<std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>> m_delayAttachments;
 
-    void setupSlot(SlotButton& slot, const juce::String& name, const char* paramID, int slotIndex);
-    void setActiveDrawer(int index);
+    void setupTab(ModuleTab& tab, const juce::String& name, const char* paramID, int tabIndex, const juce::String& tip);
+    void setActiveTab(int index);
     void updateChorusControlsVisibility();
 
     void paintEqCurve(juce::Graphics& g, juce::Rectangle<float> area);
     void paintCompMeter(juce::Graphics& g, juce::Rectangle<float> area);
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(EFXDrawerComponent)
 };
