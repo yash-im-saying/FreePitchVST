@@ -514,9 +514,6 @@ void EFXDrawerComponent::paintEqCurve(juce::Graphics& g, juce::Rectangle<float> 
         g.setColour(FreePitchLookAndFeel::kTextDim);
         g.strokePath(curve, juce::PathStrokeType(1.2f));
     }
-
-    // Glass glare reflection on CRT screen
-    FreePitchLookAndFeel::drawGlassGlare(g, area, 5.0f);
 }
 
 void EFXDrawerComponent::paintCompMeter(juce::Graphics& g, juce::Rectangle<float> area) {
@@ -561,9 +558,6 @@ void EFXDrawerComponent::paintCompMeter(juce::Graphics& g, juce::Rectangle<float
     juce::String grText = "GAIN REDUCTION: -" + juce::String(grDb, 1) + " dB";
     g.drawText(grText, static_cast<int>(area.getX()), static_cast<int>(meterTrack.getBottom() + 4),
                static_cast<int>(area.getWidth()), 16, juce::Justification::centred);
-
-    // Convex glass reflection on meter lens
-    FreePitchLookAndFeel::drawGlassGlare(g, area, 5.0f);
 }
 
 void EFXDrawerComponent::updateThemeColors() {

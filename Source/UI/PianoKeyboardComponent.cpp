@@ -171,34 +171,26 @@ void PianoKeyboardComponent::paint(juce::Graphics& g) {
 
             juce::ColourGradient grad(topCol, kx, 0.0f, botCol, kx, bounds.getHeight(), false);
             g.setGradientFill(grad);
-            g.fillRect(keyRect);
-
-            // 3D tactile bevelled front lip on white keys
-            float lipH = 6.0f;
-            auto lipRect = juce::Rectangle<float>(kx, bounds.getHeight() - lipH, whiteKeyWidth, lipH);
-            g.setColour(botCol.darker(0.20f));
-            g.fillRect(lipRect);
-            g.setColour(p.panelBorderLight.withAlpha(0.35f));
-            g.drawHorizontalLine(static_cast<int>(lipRect.getY()), keyRect.getX(), keyRect.getRight());
+            g.fillRoundedRectangle(keyRect, 2.0f);
 
             // Active scale note indicator dot at bottom of in-scale white keys
             if (inScale && inVocalRange && !isTarget && !isDetected) {
-                float dotRadius = 2.5f;
+                float dotRadius = 2.2f;
                 g.setColour(p.accentCyan.withAlpha(0.75f));
-                g.fillEllipse(kx + whiteKeyWidth * 0.5f - dotRadius, bounds.getHeight() - 20.0f,
+                g.fillEllipse(kx + whiteKeyWidth * 0.5f - dotRadius, bounds.getHeight() - 16.0f,
                               dotRadius * 2.0f, dotRadius * 2.0f);
             }
 
             // Hairline separator between keys
             g.setColour(p.bgBase);
-            g.drawRect(keyRect, 1.0f);
+            g.drawRect(keyRect, 0.8f);
 
             // Print Note Name (e.g. C1, C2, C3, C4, C5, C6) on C keys
             if (m % 12 == 0) {
                 int oct = (m / 12) - 1;
                 g.setColour(isTarget || isDetected ? juce::Colours::black : p.textDim);
                 g.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 9.5f, juce::Font::bold));
-                g.drawText("C" + juce::String(oct), keyRect.removeFromBottom(18.0f), juce::Justification::centred);
+                g.drawText("C" + juce::String(oct), keyRect.removeFromBottom(16.0f), juce::Justification::centred);
             }
 
             whiteIdx++;
@@ -242,13 +234,7 @@ void PianoKeyboardComponent::paint(juce::Graphics& g) {
 
             juce::ColourGradient blackGrad(topCol, blackRect.getX(), 0.0f, botCol, blackRect.getX(), blackKeyHeight, false);
             g.setGradientFill(blackGrad);
-            g.fillRoundedRectangle(blackRect.reduced(0.5f, 0.0f), 2.0f);
-
-            // Specular ridge highlight along the center of black key
-            if (!isTarget && !isDetected) {
-                g.setColour(juce::Colours::white.withAlpha(0.12f));
-                g.drawLine(blackCenterX, 2.0f, blackCenterX, blackKeyHeight - 3.0f, 1.0f);
-            }
+            g.fillRoundedRectangle(blackRect.reduced(0.5f, 0.0f), 2.5f);
 
             // Active scale note dot on black keys
             if (inScale && inVocalRange && !isTarget && !isDetected) {

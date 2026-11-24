@@ -11,14 +11,14 @@ public:
 
     struct ThemePalette {
         juce::Colour bgBase;             // Main chassis background
-        juce::Colour panelRaised;        // Raised panel / card surface
-        juce::Colour panelSunken;        // Inset well / recessed socket
-        juce::Colour panelBorder;        // Subtle perimeter frame
-        juce::Colour panelBorderLight;   // Top/left highlight frame
-        juce::Colour shadowDark;         // Ambient drop shadow (bottom-right)
-        juce::Colour shadowLight;        // Specular highlight (top-left)
-        juce::Colour innerShadowDark;    // Inset socket shadow (top-left)
-        juce::Colour innerShadowLight;   // Inset socket highlight (bottom-right)
+        juce::Colour panelRaised;        // Extruded neumorphic card/surface
+        juce::Colour panelSunken;        // Inset cavity / debossed well
+        juce::Colour panelBorder;        // Soft perimeter hairline
+        juce::Colour panelBorderLight;   // Top-left specular hairline
+        juce::Colour shadowDark;         // Ambient soft drop shadow (bottom-right)
+        juce::Colour shadowLight;        // Ambient soft highlight shadow (top-left)
+        juce::Colour innerShadowDark;    // Inset cavity dark shadow (top-left)
+        juce::Colour innerShadowLight;   // Inset cavity highlight (bottom-right)
 
         // Text
         juce::Colour textPrimary;        // Hero text / values
@@ -26,7 +26,7 @@ public:
         juce::Colour textMuted;          // Subdued / descriptions
         juce::Colour textDim;            // Disabled / inactive
 
-        // Accents & Hardware LEDs
+        // Accents & Hardware Indicators
         juce::Colour accentCyan;         // Primary neon cyan (pitch / active)
         juce::Colour accentCyanGlow;     // Primary halo
         juce::Colour accentAmber;        // Secondary gold/amber (quantize / correction)
@@ -35,13 +35,6 @@ public:
         juce::Colour indicatorSharp;     // Orange
         juce::Colour indicatorFlat;      // Sky blue
         juce::Colour indicatorWarning;   // Crimson alert
-
-        // Knobs & Hardware
-        juce::Colour knobCapTop;         // Metallic dial top reflection
-        juce::Colour knobCapBottom;      // Metallic dial bottom shade
-        juce::Colour knobRim;            // Machined knurl perimeter rim
-        juce::Colour knobRimHighlight;   // Specular rim reflection
-        juce::Colour glassGlare;         // Specular glass reflection for HUD lens
     };
 
     FreePitchLookAndFeel();
@@ -55,25 +48,23 @@ public:
     static const ThemePalette& getPalette() { return s_currentPalette; }
     static bool isDark() { return s_themeMode == ThemeMode::Dark; }
 
-    // Skeuomorphic & Neumorphic Rendering Primitives
+    // Pure Neumorphic Primitives
     static void drawNeumorphicRaised(juce::Graphics& g, juce::Rectangle<float> bounds,
                                      float cornerRadius, float depth = 4.0f, bool isHovered = false);
 
     static void drawNeumorphicSunken(juce::Graphics& g, juce::Rectangle<float> bounds,
                                      float cornerRadius, float depth = 3.0f);
 
-    static void drawGlassGlare(juce::Graphics& g, juce::Rectangle<float> bounds, float cornerRadius);
-
     static void drawTactileLed(juce::Graphics& g, float cx, float cy, float radius,
                                const juce::Colour& color, bool isOn);
 
     // Dynamically updated static colors for backward compatibility
-    static inline juce::Colour kBackgroundDark    = juce::Colour(0xFF16191F);
-    static inline juce::Colour kPanelDark         = juce::Colour(0xFF12141A);
-    static inline juce::Colour kPanelCard         = juce::Colour(0xFF1C2028);
-    static inline juce::Colour kPanelCardHover    = juce::Colour(0xFF242A36);
-    static inline juce::Colour kPanelBorder       = juce::Colour(0xFF242A36);
-    static inline juce::Colour kPanelBorderLight  = juce::Colour(0xFF2E3646);
+    static inline juce::Colour kBackgroundDark    = juce::Colour(0xFF181B20);
+    static inline juce::Colour kPanelDark         = juce::Colour(0xFF14161A);
+    static inline juce::Colour kPanelCard         = juce::Colour(0xFF1E2229);
+    static inline juce::Colour kPanelCardHover    = juce::Colour(0xFF242932);
+    static inline juce::Colour kPanelBorder       = juce::Colour(0xFF262C36);
+    static inline juce::Colour kPanelBorderLight  = juce::Colour(0xFF303846);
     static inline juce::Colour kPanelBorderGlow   = juce::Colour(0x6600E5FF);
 
     static inline juce::Colour kTextWhite         = juce::Colour(0xFFF8FAFC);
@@ -90,9 +81,9 @@ public:
     static inline juce::Colour kIndicatorFlat     = juce::Colour(0xFF38BDF8);
     static inline juce::Colour kIndicatorWarning  = juce::Colour(0xFFEF4444);
 
-    static inline juce::Colour kKnobBodyTop       = juce::Colour(0xFF2C3240);
-    static inline juce::Colour kKnobBodyBottom    = juce::Colour(0xFF181B23);
-    static inline juce::Colour kKnobRim           = juce::Colour(0xFF3B4457);
+    static inline juce::Colour kKnobBodyTop       = juce::Colour(0xFF1E2229);
+    static inline juce::Colour kKnobBodyBottom    = juce::Colour(0xFF181B20);
+    static inline juce::Colour kKnobRim           = juce::Colour(0xFF2A313D);
 
     // JUCE LookAndFeel Overrides
     void drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height,

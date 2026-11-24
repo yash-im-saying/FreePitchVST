@@ -309,31 +309,27 @@ void FreePitchAudioProcessorEditor::paint(juce::Graphics& g) {
     float leftWidth = std::clamp(totalW * 0.22f, 210.0f, 290.0f);
     float rightWidth = std::clamp(totalW * 0.46f, 450.0f, 740.0f);
 
-    // Left Bank Panel (Tuning Dynamics): Skeuomorphic Raised Neumorphic Card
+    // Left Bank Panel (Tuning Dynamics): Neumorphic Raised Card
     auto leftPanel = contentArea.removeFromLeft(leftWidth).reduced(6.0f, 6.0f);
-    FreePitchLookAndFeel::drawNeumorphicRaised(g, leftPanel, 8.0f, 4.0f);
+    FreePitchLookAndFeel::drawNeumorphicRaised(g, leftPanel, 10.0f, 4.0f);
 
-    // Right Bank Panel (Voice Tone & Modular EFX): Skeuomorphic Raised Neumorphic Card
+    // Right Bank Panel (Voice Tone & Modular EFX): Neumorphic Raised Card
     auto rightPanel = contentArea.removeFromRight(rightWidth).reduced(6.0f, 6.0f);
-    FreePitchLookAndFeel::drawNeumorphicRaised(g, rightPanel, 8.0f, 4.0f);
+    FreePitchLookAndFeel::drawNeumorphicRaised(g, rightPanel, 10.0f, 4.0f);
 
-    // Center Focal Zone Panel (Pitch Radar & Scale Quantizer): Skeuomorphic Raised Neumorphic Card
+    // Center Focal Zone Panel (Pitch Radar & Scale Quantizer): Neumorphic Raised Card
     auto centerPanel = contentArea.reduced(6.0f, 6.0f);
-    FreePitchLookAndFeel::drawNeumorphicRaised(g, centerPanel, 8.0f, 4.0f);
+    FreePitchLookAndFeel::drawNeumorphicRaised(g, centerPanel, 10.0f, 4.0f);
 
     // Section Header Badges
     auto drawHeader = [&](const juce::String& text, juce::Rectangle<float> panel, const juce::Colour& dotCol) {
-        // Tactile hairline bevel divider under header
-        g.setColour(p.panelBorderLight.withAlpha(0.25f));
-        g.drawHorizontalLine(static_cast<int>(panel.getY() + 24.0f), panel.getX() + 10.0f, panel.getRight() - 10.0f);
-
         // Tactile hardware LED pip
-        FreePitchLookAndFeel::drawTactileLed(g, panel.getX() + 16.0f, panel.getY() + 13.0f, 2.5f, dotCol, true);
+        FreePitchLookAndFeel::drawTactileLed(g, panel.getX() + 16.0f, panel.getY() + 14.0f, 2.5f, dotCol, true);
 
         // Header Typography
         g.setFont(juce::FontOptions(10.5f, juce::Font::bold));
         g.setColour(p.textSecondary);
-        g.drawText(text, juce::Rectangle<float>(panel.getX() + 25.0f, panel.getY() + 6.0f, panel.getWidth() - 35.0f, 16.0f),
+        g.drawText(text, juce::Rectangle<float>(panel.getX() + 26.0f, panel.getY() + 6.0f, panel.getWidth() - 36.0f, 16.0f),
                    juce::Justification::centredLeft);
     };
 
@@ -348,15 +344,15 @@ void FreePitchAudioProcessorEditor::paint(juce::Graphics& g) {
         float cw = m_confidenceMeterBounds.getWidth();
         float ch = m_confidenceMeterBounds.getHeight();
 
-        // Skeuomorphic Sunken Neumorphic Well
-        FreePitchLookAndFeel::drawNeumorphicSunken(g, m_confidenceMeterBounds, 4.0f, 2.0f);
+        // Neumorphic Sunken Well
+        FreePitchLookAndFeel::drawNeumorphicSunken(g, m_confidenceMeterBounds, 5.0f, 2.0f);
 
         float confFrac = std::clamp(m_smoothConfidence, 0.0f, 1.0f);
         if (confFrac > 0.02f) {
             auto fillRect = juce::Rectangle<float>(cx + 1.0f, cy + 1.0f, (cw - 2.0f) * confFrac, ch - 2.0f);
             juce::Colour fillCol = (confFrac >= 0.58f) ? p.indicatorInTune : p.indicatorSharp;
             g.setColour(fillCol.withAlpha(0.85f));
-            g.fillRoundedRectangle(fillRect, 3.0f);
+            g.fillRoundedRectangle(fillRect, 4.0f);
         }
 
         // Percentage readout

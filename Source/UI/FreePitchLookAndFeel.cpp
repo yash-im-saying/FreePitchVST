@@ -3,19 +3,19 @@
 
 FreePitchLookAndFeel::ThemePalette FreePitchLookAndFeel::makeDarkPalette() {
     ThemePalette p;
-    p.bgBase            = juce::Colour(0xFF16191F); // Deep obsidian slate
-    p.panelRaised       = juce::Colour(0xFF1C2028); // Elevated tactile card
-    p.panelSunken       = juce::Colour(0xFF12141A); // Sunken well / recessed cavity
-    p.panelBorder       = juce::Colour(0xFF252B37); // Frame hairline
-    p.panelBorderLight  = juce::Colour(0xFF323B4C); // Bevel top-left rim highlight
-    p.shadowDark        = juce::Colour(0x99080A0E); // Deep ambient drop shadow
-    p.shadowLight       = juce::Colour(0x3348546A); // Specular highlight shadow
-    p.innerShadowDark   = juce::Colour(0xCC090B0F); // Recessed inner shadow
-    p.innerShadowLight  = juce::Colour(0x2B3B485E); // Inset specular rim
+    p.bgBase            = juce::Colour(0xFF181B20); // Neutral dark slate chassis
+    p.panelRaised       = juce::Colour(0xFF1E2229); // Extruded neumorphic card surface
+    p.panelSunken       = juce::Colour(0xFF131519); // Concave dish / inset well
+    p.panelBorder       = juce::Colour(0xFF242A34); // Soft perimeter hairline
+    p.panelBorderLight  = juce::Colour(0xFF2E3542); // Soft top-left specular hairline
+    p.shadowDark        = juce::Colour(0x990A0C0E); // Diffuse ambient drop shadow
+    p.shadowLight       = juce::Colour(0x2E404D60); // Soft ambient highlight shadow
+    p.innerShadowDark   = juce::Colour(0xCC08090C); // Recessed cavity dark shadow
+    p.innerShadowLight  = juce::Colour(0x26374456); // Inset cavity specular rim
 
     p.textPrimary       = juce::Colour(0xFFF8FAFC); // Crisp off-white
-    p.textSecondary     = juce::Colour(0xFFCBD5E1); // Clean slate
-    p.textMuted         = juce::Colour(0xFF8492A6); // Technical grey
+    p.textSecondary     = juce::Colour(0xFF94A3B8); // Clean slate
+    p.textMuted         = juce::Colour(0xFF64748B); // Technical grey
     p.textDim           = juce::Colour(0xFF475569); // Muted inactive
 
     p.accentCyan        = juce::Colour(0xFF00E5FF); // Radiant electric cyan
@@ -27,29 +27,23 @@ FreePitchLookAndFeel::ThemePalette FreePitchLookAndFeel::makeDarkPalette() {
     p.indicatorFlat     = juce::Colour(0xFF38BDF8);
     p.indicatorWarning  = juce::Colour(0xFFEF4444);
 
-    p.knobCapTop        = juce::Colour(0xFF2C3240); // Machined dark gunmetal top
-    p.knobCapBottom     = juce::Colour(0xFF181B23); // Machined dark gunmetal bottom
-    p.knobRim           = juce::Colour(0xFF3B4457); // Milled edge rim
-    p.knobRimHighlight  = juce::Colour(0xFF54627E); // Edge knurl specular tooth
-    p.glassGlare        = juce::Colour(0x22FFFFFF); // Convex glass lens glare
-
     return p;
 }
 
 FreePitchLookAndFeel::ThemePalette FreePitchLookAndFeel::makeLightPalette() {
     ThemePalette p;
-    p.bgBase            = juce::Colour(0xFFE0E5EC); // Classic studio neumorphic silver cream
-    p.panelRaised       = juce::Colour(0xFFE8EDF4); // Soft extruded card
-    p.panelSunken       = juce::Colour(0xFFD3D9E2); // Sunken well / recessed cavity
-    p.panelBorder       = juce::Colour(0xFFBAC5D3); // Subtle hairline
-    p.panelBorderLight  = juce::Colour(0xFFFFFFFF); // Specular top-left rim highlight
-    p.shadowDark        = juce::Colour(0x7797A5B8); // Soft ambient drop shadow
+    p.bgBase            = juce::Colour(0xFFE0E5EC); // Iconic uiverse neumorphic silver cream
+    p.panelRaised       = juce::Colour(0xFFE0E5EC); // Same matte material!
+    p.panelSunken       = juce::Colour(0xFFD2D8E2); // Concave dish / inset well
+    p.panelBorder       = juce::Colour(0xFFBAC3CF); // Soft perimeter hairline
+    p.panelBorderLight  = juce::Colour(0xFFFFFFFF); // Specular top-left hairline
+    p.shadowDark        = juce::Colour(0x77A3B1C6); // Soft ambient drop shadow
     p.shadowLight       = juce::Colour(0xEEFFFFFF); // Pure white specular highlight shadow
-    p.innerShadowDark   = juce::Colour(0x668695A8); // Recessed inner shadow
-    p.innerShadowLight  = juce::Colour(0xDDFFFFFF); // Inset specular rim
+    p.innerShadowDark   = juce::Colour(0x6697A6BB); // Recessed cavity dark shadow
+    p.innerShadowLight  = juce::Colour(0xEEFFFFFF); // Inset cavity specular rim
 
     p.textPrimary       = juce::Colour(0xFF1E293B); // Deep charcoal
-    p.textSecondary     = juce::Colour(0xFF334155); // Slate
+    p.textSecondary     = juce::Colour(0xFF475569); // Slate
     p.textMuted         = juce::Colour(0xFF64748B); // Muted neutral
     p.textDim           = juce::Colour(0xFF94A3B8); // Soft grey
 
@@ -61,12 +55,6 @@ FreePitchLookAndFeel::ThemePalette FreePitchLookAndFeel::makeLightPalette() {
     p.indicatorSharp    = juce::Colour(0xFFEA580C);
     p.indicatorFlat     = juce::Colour(0xFF0284C7);
     p.indicatorWarning  = juce::Colour(0xFFDC2626);
-
-    p.knobCapTop        = juce::Colour(0xFFFFFFFF); // Brushed satin aluminum top
-    p.knobCapBottom     = juce::Colour(0xFFD1D8E3); // Brushed satin aluminum bottom
-    p.knobRim           = juce::Colour(0xFFBAC5D4);
-    p.knobRimHighlight  = juce::Colour(0xFFFFFFFF);
-    p.glassGlare        = juce::Colour(0x55FFFFFF); // Crisp glass reflection
 
     return p;
 }
@@ -89,7 +77,7 @@ void FreePitchLookAndFeel::applyPaletteToColours() {
     kBackgroundDark   = p.bgBase;
     kPanelDark        = p.panelSunken;
     kPanelCard        = p.panelRaised;
-    kPanelCardHover   = (s_themeMode == ThemeMode::Dark) ? p.panelRaised.brighter(0.06f) : p.panelRaised.darker(0.04f);
+    kPanelCardHover   = (s_themeMode == ThemeMode::Dark) ? p.panelRaised.brighter(0.05f) : p.panelRaised.darker(0.03f);
     kPanelBorder      = p.panelBorder;
     kPanelBorderLight = p.panelBorderLight;
     kPanelBorderGlow  = p.accentCyanGlow;
@@ -108,9 +96,9 @@ void FreePitchLookAndFeel::applyPaletteToColours() {
     kIndicatorFlat    = p.indicatorFlat;
     kIndicatorWarning = p.indicatorWarning;
 
-    kKnobBodyTop      = p.knobCapTop;
-    kKnobBodyBottom   = p.knobCapBottom;
-    kKnobRim          = p.knobRim;
+    kKnobBodyTop      = p.panelRaised;
+    kKnobBodyBottom   = p.panelSunken;
+    kKnobRim          = p.panelBorder;
 
     // JUCE Component standard colours
     setColour(juce::ResizableWindow::backgroundColourId, p.bgBase);
@@ -130,16 +118,16 @@ void FreePitchLookAndFeel::drawNeumorphicRaised(juce::Graphics& g, juce::Rectang
     const auto& p = s_currentPalette;
     float off = depth * 0.7f;
 
-    // 1. Specular highlight shadow on top-left (-x, -y)
+    // 1. Soft specular highlight on top-left (-x, -y)
     g.setColour(p.shadowLight);
     g.fillRoundedRectangle(bounds.translated(-off, -off), cornerRadius);
 
-    // 2. Ambient drop shadow on bottom-right (+x, +y)
+    // 2. Soft ambient drop shadow on bottom-right (+x, +y)
     g.setColour(p.shadowDark);
     g.fillRoundedRectangle(bounds.translated(off, off), cornerRadius);
 
-    // 3. Raised surface face
-    g.setColour(isHovered ? p.panelRaised.brighter(0.04f) : p.panelRaised);
+    // 3. Extruded surface face (Mono-material)
+    g.setColour(isHovered ? p.panelRaised.brighter(0.03f) : p.panelRaised);
     g.fillRoundedRectangle(bounds, cornerRadius);
 
     // 4. Subtle 3D chamfer hairline rim (light on top-left, darker on bottom-right)
@@ -153,13 +141,13 @@ void FreePitchLookAndFeel::drawNeumorphicSunken(juce::Graphics& g, juce::Rectang
                                                 float cornerRadius, float depth) {
     const auto& p = s_currentPalette;
 
-    // 1. Sunken well base fill
+    // 1. Inset well base fill
     g.setColour(p.panelSunken);
     g.fillRoundedRectangle(bounds, cornerRadius);
 
     // 2. Inner dark shadow from top-left
     juce::ColourGradient darkGrad(p.innerShadowDark, bounds.getX(), bounds.getY(),
-                                  p.panelSunken, bounds.getX() + depth * 2.2f, bounds.getY() + depth * 2.2f, false);
+                                  p.panelSunken, bounds.getX() + depth * 2.0f, bounds.getY() + depth * 2.0f, false);
     g.setGradientFill(darkGrad);
     g.drawRoundedRectangle(bounds.reduced(0.5f), cornerRadius, depth);
 
@@ -170,45 +158,29 @@ void FreePitchLookAndFeel::drawNeumorphicSunken(juce::Graphics& g, juce::Rectang
     g.drawRoundedRectangle(bounds.reduced(0.5f), cornerRadius, 1.0f);
 }
 
-void FreePitchLookAndFeel::drawGlassGlare(juce::Graphics& g, juce::Rectangle<float> bounds, float cornerRadius) {
-    const auto& p = s_currentPalette;
-    auto glareArea = bounds.removeFromTop(bounds.getHeight() * 0.44f).reduced(2.0f, 2.0f);
-
-    juce::ColourGradient glareGrad(p.glassGlare, glareArea.getCentreX(), glareArea.getY(),
-                                   p.glassGlare.withAlpha(0.0f), glareArea.getCentreX(), glareArea.getBottom(), false);
-    g.setGradientFill(glareGrad);
-    g.fillRoundedRectangle(glareArea, cornerRadius);
-}
-
 void FreePitchLookAndFeel::drawTactileLed(juce::Graphics& g, float cx, float cy, float radius,
                                           const juce::Colour& color, bool isOn) {
     const auto& p = s_currentPalette;
     juce::Rectangle<float> ledBounds(cx - radius, cy - radius, radius * 2.0f, radius * 2.0f);
 
     if (isOn) {
-        // Wide ambient glow
-        g.setColour(color.withAlpha(0.38f));
-        g.fillEllipse(ledBounds.expanded(radius * 0.7f));
+        // Soft ambient glow
+        g.setColour(color.withAlpha(0.35f));
+        g.fillEllipse(ledBounds.expanded(radius * 0.6f));
 
         // Lens body
-        juce::ColourGradient lensGrad(color.brighter(0.2f), cx - radius * 0.3f, cy - radius * 0.3f,
-                                      color.darker(0.3f), cx + radius * 0.5f, cy + radius * 0.5f, true);
-        g.setGradientFill(lensGrad);
+        g.setColour(color);
         g.fillEllipse(ledBounds);
 
-        // Specular highlight hotspot
-        g.setColour(juce::Colours::white.withAlpha(0.90f));
-        g.fillEllipse(cx - radius * 0.45f, cy - radius * 0.45f, radius * 0.7f, radius * 0.7f);
+        // Subtle specular highlight hotspot
+        g.setColour(juce::Colours::white.withAlpha(0.85f));
+        g.fillEllipse(cx - radius * 0.4f, cy - radius * 0.4f, radius * 0.6f, radius * 0.6f);
     } else {
         // Inset dark socket
         g.setColour(p.panelSunken);
         g.fillEllipse(ledBounds);
         g.setColour(p.panelBorder);
-        g.drawEllipse(ledBounds, 1.0f);
-
-        // Unlit glass lens
-        g.setColour(p.panelSunken.withAlpha(0.6f));
-        g.fillEllipse(ledBounds.reduced(1.0f));
+        g.drawEllipse(ledBounds, 0.8f);
     }
 }
 
@@ -228,26 +200,18 @@ void FreePitchLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int
 
     bool useAmber = slider.getProperties().contains("accentAmber") && static_cast<bool>(slider.getProperties()["accentAmber"]);
     juce::Colour activeColor = useAmber ? p.accentAmber : p.accentCyan;
-    juce::Colour activeGlow  = useAmber ? p.accentAmberGlow : p.accentCyanGlow;
 
-    // 1. Debossed Circular Socket Well (Neumorphic Inset Circle)
+    // 1. Debossed Concave Dish / Socket Well
     juce::Rectangle<float> socketBounds(centreX - radius, centreY - radius, radius * 2.0f, radius * 2.0f);
-    g.setColour(p.panelSunken);
-    g.fillEllipse(socketBounds);
+    drawNeumorphicSunken(g, socketBounds, radius, 2.5f);
 
-    // Inner shadow of the socket
-    juce::ColourGradient socketInnerDark(p.innerShadowDark, centreX - radius, centreY - radius,
-                                         p.panelSunken, centreX, centreY, true);
-    g.setGradientFill(socketInnerDark);
-    g.drawEllipse(socketBounds.reduced(0.5f), 2.5f);
-
-    // 2. Background Track Arc (Sunken groove)
+    // 2. Background Track Groove (Subtle recessed arc)
     float trackRadius = radius - 3.5f;
     if (trackRadius > 4.0f) {
         juce::Path bgArc;
         bgArc.addCentredArc(centreX, centreY, trackRadius, trackRadius, 0.0f, rotaryStartAngle, rotaryEndAngle, true);
-        g.setColour(p.panelBorder);
-        g.strokePath(bgArc, juce::PathStrokeType(3.5f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+        g.setColour(p.panelBorder.withAlpha(0.45f));
+        g.strokePath(bgArc, juce::PathStrokeType(3.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
     }
 
     // 3. Active Illuminated Track Arc
@@ -257,79 +221,61 @@ void FreePitchLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int
         valArc.addCentredArc(centreX, centreY, trackRadius, trackRadius, 0.0f, rotaryStartAngle, currentAngle, true);
 
         if (isEnabled) {
-            // Radiant bloom under arc
-            g.setColour(activeColor.withAlpha(0.35f));
-            g.strokePath(valArc, juce::PathStrokeType(6.5f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+            // Radiant soft bloom
+            g.setColour(activeColor.withAlpha(0.30f));
+            g.strokePath(valArc, juce::PathStrokeType(6.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
         }
 
         g.setColour(isEnabled ? activeColor : p.textDim);
-        g.strokePath(valArc, juce::PathStrokeType(3.5f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+        g.strokePath(valArc, juce::PathStrokeType(3.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
     }
 
-    // 4. Skeuomorphic Cylindrical Dial Cap
-    float dialRadius = radius - 9.0f;
+    // 4. Pure Neumorphic Extruded Knob Button (Molded from same surface material)
+    float dialRadius = radius - 8.5f;
     if (dialRadius > 6.0f) {
         juce::Rectangle<float> dialBounds(centreX - dialRadius, centreY - dialRadius, dialRadius * 2.0f, dialRadius * 2.0f);
 
-        // Soft drop shadow cast onto socket
+        // Soft ambient drop shadow (bottom-right)
         g.setColour(p.shadowDark);
-        g.fillEllipse(dialBounds.translated(0.0f, 3.0f));
+        g.fillEllipse(dialBounds.translated(2.2f, 2.2f));
 
-        // Milled Knurl Texture around dial edge (16 teeth notches)
-        int numTeeth = 16;
-        for (int i = 0; i < numTeeth; ++i) {
-            float ang = (static_cast<float>(i) / static_cast<float>(numTeeth)) * juce::MathConstants<float>::twoPi;
-            float cosA = std::cos(ang);
-            float sinA = std::sin(ang);
-            float rInner = dialRadius - 2.5f;
-            float rOuter = dialRadius;
-            g.setColour(i % 2 == 0 ? p.knobRimHighlight : p.knobRim);
-            g.drawLine(centreX + cosA * rInner, centreY + sinA * rInner,
-                       centreX + cosA * rOuter, centreY + sinA * rOuter, 1.2f);
-        }
+        // Soft specular highlight (top-left)
+        g.setColour(p.shadowLight);
+        g.fillEllipse(dialBounds.translated(-1.8f, -1.8f));
 
-        // Machined metallic face gradient (simulating brushed aluminum or gunmetal)
-        juce::ColourGradient dialGrad(isHovered ? p.knobCapTop.brighter(0.05f) : p.knobCapTop,
-                                      centreX - dialRadius * 0.5f, centreY - dialRadius * 0.5f,
-                                      p.knobCapBottom, centreX + dialRadius * 0.5f, centreY + dialRadius * 0.5f, false);
-        g.setGradientFill(dialGrad);
-        g.fillEllipse(dialBounds.reduced(1.2f));
+        // Extruded knob cap body (Exact same material as panel)
+        g.setColour(isHovered ? p.panelRaised.brighter(0.03f) : p.panelRaised);
+        g.fillEllipse(dialBounds);
 
-        // Chamfered Bevel Rim
-        g.setColour(isHovered ? activeColor.withAlpha(0.6f) : p.knobRim);
-        g.drawEllipse(dialBounds.reduced(1.2f), 1.0f);
+        // Subtle 3D chamfer rim hairline
+        juce::ColourGradient dialRim(p.panelBorderLight, centreX - dialRadius, centreY - dialRadius,
+                                     p.panelBorder, centreX + dialRadius, centreY + dialRadius, false);
+        g.setGradientFill(dialRim);
+        g.drawEllipse(dialBounds, 1.0f);
 
-        // Concentric hairline machined ring
-        float innerRingR = dialRadius * 0.65f;
-        g.setColour(p.panelBorder.withAlpha(0.5f));
-        g.drawEllipse(centreX - innerRingR, centreY - innerRingR, innerRingR * 2.0f, innerRingR * 2.0f, 0.8f);
+        // 5. Center Finger Dimple (Soft concave dish)
+        float dimpleRadius = dialRadius * 0.38f;
+        juce::Rectangle<float> dimpleBounds(centreX - dimpleRadius, centreY - dimpleRadius,
+                                            dimpleRadius * 2.0f, dimpleRadius * 2.0f);
+        drawNeumorphicSunken(g, dimpleBounds, dimpleRadius, 1.5f);
 
-        // 5. Indicator Needle Pointer (Etched groove with luminous tip)
-        juce::Path needle;
-        float needleStart = dialRadius * 0.28f;
-        float needleEnd   = dialRadius * 0.86f;
-
-        float sinA = std::sin(currentAngle);
-        float cosA = std::cos(currentAngle);
-
-        needle.startNewSubPath(centreX + sinA * needleStart, centreY - cosA * needleStart);
-        needle.lineTo(centreX + sinA * needleEnd,   centreY - cosA * needleEnd);
+        // 6. Minimalist Illuminated Indicator Pip
+        float pipDist = dialRadius * 0.70f;
+        float pipX = centreX + std::sin(currentAngle) * pipDist;
+        float pipY = centreY - std::cos(currentAngle) * pipDist;
+        float pipR = isHovered ? 2.6f : 2.0f;
 
         if (isEnabled) {
-            g.setColour(activeColor.withAlpha(0.45f));
-            g.strokePath(needle, juce::PathStrokeType(3.5f, juce::PathStrokeType::mitered, juce::PathStrokeType::rounded));
+            // Subtle neon glow
+            g.setColour(activeColor.withAlpha(0.35f));
+            g.fillEllipse(pipX - pipR - 1.5f, pipY - pipR - 1.5f, (pipR + 1.5f) * 2.0f, (pipR + 1.5f) * 2.0f);
 
             g.setColour(isHovered ? juce::Colours::white : activeColor);
-            g.strokePath(needle, juce::PathStrokeType(2.2f, juce::PathStrokeType::mitered, juce::PathStrokeType::rounded));
+            g.fillEllipse(pipX - pipR, pipY - pipR, pipR * 2.0f, pipR * 2.0f);
         } else {
             g.setColour(p.textDim);
-            g.strokePath(needle, juce::PathStrokeType(2.0f, juce::PathStrokeType::mitered, juce::PathStrokeType::rounded));
+            g.fillEllipse(pipX - pipR, pipY - pipR, pipR * 2.0f, pipR * 2.0f);
         }
-
-        // Center jewel dot
-        float dotRadius = 2.2f;
-        g.setColour(isEnabled ? (isHovered ? juce::Colours::white : activeColor) : p.textDim);
-        g.fillEllipse(centreX - dotRadius, centreY - dotRadius, dotRadius * 2.0f, dotRadius * 2.0f);
     }
 }
 
@@ -341,12 +287,12 @@ void FreePitchLookAndFeel::drawComboBox(juce::Graphics& g, int width, int height
     const auto& p = s_currentPalette;
 
     if (isButtonDown) {
-        drawNeumorphicSunken(g, bounds, 4.0f, 2.5f);
+        drawNeumorphicSunken(g, bounds, 6.0f, 2.5f);
     } else {
-        drawNeumorphicRaised(g, bounds, 4.0f, 2.5f, isHovered);
+        drawNeumorphicRaised(g, bounds, 6.0f, 2.5f, isHovered);
     }
 
-    // 3D metallic chevron arrow on right
+    // Clean modern chevron arrow on right
     float arrowX = static_cast<float>(width) - 15.0f;
     float arrowY = static_cast<float>(height) * 0.5f;
     juce::Path arrow;
@@ -368,12 +314,12 @@ void FreePitchLookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButto
     bool useAmber = button.getProperties().contains("accentAmber") && static_cast<bool>(button.getProperties()["accentAmber"]);
     juce::Colour activeColor = useAmber ? p.accentAmber : p.indicatorInTune;
 
-    // Draw tactile jewel LED lamp
-    float pipSize = 9.0f;
+    // Draw tactile circular LED pip
+    float pipSize = 8.5f;
     float pipY = bounds.getCentreY();
     drawTactileLed(g, 9.0f, pipY, pipSize * 0.5f, activeColor, isOn && isEnabled);
 
-    // Text Label with active theme color
+    // Typography
     g.setColour(isOn ? p.textPrimary : (shouldDrawButtonAsHighlighted ? p.textSecondary : p.textMuted));
     g.setFont(juce::FontOptions(11.5f, juce::Font::bold));
     g.drawText(button.getButtonText(), 19, 0, button.getWidth() - 19, button.getHeight(),
@@ -388,21 +334,21 @@ void FreePitchLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button&
     bool isPressed = shouldDrawButtonAsDown || isOn;
 
     if (isPressed) {
-        // Sunken / depressed into chassis
-        drawNeumorphicSunken(g, bounds, 4.0f, 2.5f);
+        // Depressed into surface
+        drawNeumorphicSunken(g, bounds, 6.0f, 2.5f);
         if (isOn) {
             g.setColour(s_currentPalette.accentCyan.withAlpha(0.6f));
-            g.drawRoundedRectangle(bounds.reduced(0.5f), 4.0f, 1.0f);
+            g.drawRoundedRectangle(bounds.reduced(0.5f), 6.0f, 1.0f);
         }
     } else {
         // Raised extruded tile
-        drawNeumorphicRaised(g, bounds, 4.0f, 3.0f, shouldDrawButtonAsHighlighted);
+        drawNeumorphicRaised(g, bounds, 6.0f, 2.5f, shouldDrawButtonAsHighlighted);
     }
 }
 
 void FreePitchLookAndFeel::drawPopupMenuBackground(juce::Graphics& g, int width, int height) {
     auto bounds = juce::Rectangle<float>(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height));
-    drawNeumorphicRaised(g, bounds, 5.0f, 4.0f);
+    drawNeumorphicRaised(g, bounds, 6.0f, 4.0f);
 }
 
 void FreePitchLookAndFeel::drawPopupMenuItem(juce::Graphics& g, const juce::Rectangle<int>& area,
@@ -456,7 +402,7 @@ void FreePitchLookAndFeel::drawTooltip(juce::Graphics& g, const juce::String& te
     auto bounds = juce::Rectangle<float>(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height));
     const auto& p = s_currentPalette;
 
-    // Dark glass / frosted surface with dual shadows
+    // Neumorphic dark glass floating badge
     g.setColour(p.panelSunken.withAlpha(0.96f));
     g.fillRoundedRectangle(bounds, 6.0f);
 
