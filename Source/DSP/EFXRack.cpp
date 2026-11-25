@@ -21,8 +21,8 @@ void EFXRack::prepare(double sampleRate, int /*maxBlockSize*/) {
     m_chorusDelayBufferR.assign(maxDelayChorus, 0.0f);
     m_chorusWritePos = 0;
 
-    // Pre-allocate delay line: max 2.5 seconds
-    int maxDelaySamples = static_cast<int>(m_sampleRate * 2.5);
+    // Pre-allocate delay line: max 4.0 seconds (supports whole-notes at slow tempos)
+    int maxDelaySamples = static_cast<int>(m_sampleRate * 4.0);
     m_delayBufferL.assign(maxDelaySamples, 0.0f);
     m_delayBufferR.assign(maxDelaySamples, 0.0f);
     m_delayWritePos = 0;
@@ -214,7 +214,7 @@ void EFXRack::setDelayParams(bool enabled, int mode, float timeMs, float feedbac
                             float freqShiftHz, float diffusionPct, float toneFreqHz, float mixPct) {
     m_delayEnabled = enabled;
     m_delayMode = mode;
-    m_delayTimeMs = std::clamp(timeMs, 1.0f, 2000.0f);
+    m_delayTimeMs = std::clamp(timeMs, 1.0f, 4000.0f);
     m_delayFeedback = std::clamp(feedbackPct * 0.01f, 0.0f, 0.95f);
     m_delayFreqShiftHz = std::clamp(freqShiftHz, -100.0f, 100.0f);
     m_delayDiffusion = std::clamp(diffusionPct * 0.01f, 0.0f, 1.0f);

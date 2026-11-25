@@ -63,6 +63,9 @@ namespace FreePitchID {
     // Delay / Echo (H-Delay, Supermassive, FreqEcho)
     inline constexpr const char* delayEnabled    = "delayEnabled";
     inline constexpr const char* delayMode       = "delayMode";
+    inline constexpr const char* delaySyncMode   = "delaySyncMode"; // 0 = Free (ms), 1 = Host Tempo, 2 = Manual BPM
+    inline constexpr const char* delaySubdiv     = "delaySubdiv";   // Note subdivision index (0 to 14)
+    inline constexpr const char* delayBpm        = "delayBpm";      // Manual tempo reference (40 to 300 BPM)
     inline constexpr const char* delayTime       = "delayTime";
     inline constexpr const char* delayFeedback   = "delayFeedback";
     inline constexpr const char* delayFreqShift  = "delayFreqShift";
@@ -114,6 +117,45 @@ enum class ScaleType {
     NumScales
 };
 
+inline const juce::StringArray g_delaySubdivisions = {
+    "1/64", "1/32", "1/16T", "1/16", "1/16D",
+    "1/8T", "1/8",  "1/8D",  "1/4T", "1/4",
+    "1/4D", "1/2T", "1/2",   "1/2D", "1/1"
+};
+
+inline float getSubdivisionBeatMultiplier(int index) {
+    static constexpr float multipliers[] = {
+        0.0625f,               // 1/64 (1/16 beat)
+        0.125f,                // 1/32 (1/8 beat)
+        0.25f * (2.0f / 3.0f), // 1/16T (1/6 beat)
+        0.25f,                 // 1/16 (1/4 beat)
+        0.375f,                // 1/16D (3/8 beat)
+        0.5f * (2.0f / 3.0f),  // 1/8T (1/3 beat)
+        0.5f,                  // 1/8 (1/2 beat)
+        0.75f,                 // 1/8D (3/4 beat)
+        1.0f * (2.0f / 3.0f),  // 1/4T (2/3 beat)
+        1.0f,                  // 1/4 (1 beat)
+        1.5f,                  // 1/4D (1.5 beats)
+        2.0f * (2.0f / 3.0f),  // 1/2T (4/3 beats)
+        2.0f,                  // 1/2 (2 beats)
+        3.0f,                  // 1/2D (3 beats)
+        4.0f                   // 1/1 (4 beats)
+    };
+    if (index >= 0 && index < 15) return multipliers[index];
+    return 1.0f; // default 1/4 note
+}
+
+inline float calculateDelayTimeMs(int syncMode, float freeTimeMs, int subdivIdx, float hostBpm, float manualBpm) {
+    if (syncMode <= 0) { // Free (ms)
+        return std::clamp(freeTimeMs, 1.0f, 2500.0f);
+    }
+    float bpm = (syncMode == 1) ? hostBpm : manualBpm;
+    if (bpm < 20.0f || bpm > 400.0f) bpm = 120.0f;
+    float mult = getSubdivisionBeatMultiplier(subdivIdx);
+    float beatMs = (60.0f / bpm) * 1000.0f;
+    return std::clamp(beatMs * mult, 1.0f, 4000.0f);
+}
+
 struct PitchTelemetry {
     float detectedFreqHz = 0.0f;
     float targetFreqHz = 0.0f;
@@ -128,6 +170,8 @@ struct PitchTelemetry {
     float inputRmsDb = -100.0f;
     float outputRmsDb = -100.0f;
     uint32_t customScaleMask = 0xFFF; // 12-bit chromatic mask
+    float hostBpm = 120.0f;
+    float effectiveDelayMs = 250.0f;
 };
 
 inline juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout() {
@@ -321,9 +365,19 @@ inline juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout
     layout.add(std::make_unique<juce::AudioParameterChoice>(
         juce::ParameterID(FreePitchID::delayMode, 1), "Delay Mode",
         juce::StringArray { "Stereo", "Ping-Pong" }, 0));
+    layout.add(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID(FreePitchID::delaySyncMode, 1), "Delay Sync Mode",
+        juce::StringArray { "Free (ms)", "Host Tempo", "Manual BPM" }, 0));
+    layout.add(std::make_unique<juce::AudioParameterChoice>(
+        juce::ParameterID(FreePitchID::delaySubdiv, 1), "Delay Subdivision",
+        g_delaySubdivisions, 7)); // 7 = 1/8D dotted eighth
+    layout.add(std::make_unique<juce::AudioParameterFloat>(
+        juce::ParameterID(FreePitchID::delayBpm, 1), "Delay Manual BPM",
+        juce::NormalisableRange<float>(40.0f, 300.0f, 0.1f), 120.0f,
+        juce::AudioParameterFloatAttributes().withLabel("BPM")));
     layout.add(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID(FreePitchID::delayTime, 1), "Delay Time",
-        juce::NormalisableRange<float>(1.0f, 1500.0f, 1.0f, 0.4f), 250.0f,
+        juce::NormalisableRange<float>(1.0f, 2500.0f, 1.0f, 0.4f), 250.0f,
         juce::AudioParameterFloatAttributes().withLabel("ms")));
     layout.add(std::make_unique<juce::AudioParameterFloat>(
         juce::ParameterID(FreePitchID::delayFeedback, 1), "Delay Feedback",

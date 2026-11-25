@@ -179,9 +179,40 @@ EFXDrawerComponent::EFXDrawerComponent(juce::AudioProcessorValueTreeState& apvts
     m_delayModeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(m_apvts, FreePitchID::delayMode, m_delayModeBox);
     addChildComponent(m_delayModeBox);
 
+    m_delaySyncModeBox.addItem("Free (ms)", 1);
+    m_delaySyncModeBox.addItem("Host Tempo", 2);
+    m_delaySyncModeBox.addItem("Manual BPM", 3);
+    m_delaySyncModeBox.setTooltip("Delay Sync Mode: Free milliseconds, Host Tempo (synced to DAW BPM), or Manual BPM.");
+    m_delaySyncModeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(m_apvts, FreePitchID::delaySyncMode, m_delaySyncModeBox);
+    m_delaySyncModeBox.onChange = [this]() {
+        updateDelayControlsVisibility();
+        resized();
+    };
+    addChildComponent(m_delaySyncModeBox);
+
+    for (int i = 0; i < g_delaySubdivisions.size(); ++i) {
+        m_delaySubdivBox.addItem(g_delaySubdivisions[i], i + 1);
+    }
+    m_delaySubdivBox.setTooltip("Delay Subdivision: Musical note division synced to tempo.");
+    m_delaySubdivAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(m_apvts, FreePitchID::delaySubdiv, m_delaySubdivBox);
+    addChildComponent(m_delaySubdivBox);
+
+    m_delayBpmReadoutLabel.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 10.0f, juce::Font::bold));
+    m_delayBpmReadoutLabel.setJustificationType(juce::Justification::centred);
+    m_delayBpmReadoutLabel.setText("120.0 BPM", juce::dontSendNotification);
+    m_delayBpmReadoutLabel.setTooltip("Delay Tempo: Live detected DAW project tempo or reference BPM.");
+    addChildComponent(m_delayBpmReadoutLabel);
+
+    if (auto* p = m_apvts.getParameter(FreePitchID::delayBpm)) {
+        m_delayBpmKnob = std::make_unique<RotaryKnob>(*p, "BPM", "");
+        m_delayBpmKnob->setTooltipText("Delay Manual BPM: Reference tempo when Manual BPM mode is active (40 to 300 BPM).");
+        m_delayAttachments.push_back(std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(m_apvts, FreePitchID::delayBpm, m_delayBpmKnob->getSlider()));
+        addChildComponent(m_delayBpmKnob.get());
+    }
+
     if (auto* p = m_apvts.getParameter(FreePitchID::delayTime)) {
         m_delayTimeKnob = std::make_unique<RotaryKnob>(*p, "Time", "ms");
-        m_delayTimeKnob->setTooltipText("Delay Time (10 to 2000 ms): Tape pitch glide on adjustment.");
+        m_delayTimeKnob->setTooltipText("Delay Time (1 to 2500 ms): Smooth tape pitch glide on adjustment.");
         m_delayAttachments.push_back(std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(m_apvts, FreePitchID::delayTime, m_delayTimeKnob->getSlider()));
         addChildComponent(m_delayTimeKnob.get());
     }
@@ -190,6 +221,12 @@ EFXDrawerComponent::EFXDrawerComponent(juce::AudioProcessorValueTreeState& apvts
         m_delayFeedbackKnob->setTooltipText("Delay Feedback: Repeat decay sustained with analog tape saturation.");
         m_delayAttachments.push_back(std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(m_apvts, FreePitchID::delayFeedback, m_delayFeedbackKnob->getSlider()));
         addChildComponent(m_delayFeedbackKnob.get());
+    }
+    if (auto* p = m_apvts.getParameter(FreePitchID::delayTone)) {
+        m_delayToneKnob = std::make_unique<RotaryKnob>(*p, "Damping", "Hz");
+        m_delayToneKnob->setTooltipText("Delay Damping Filter: Analog tape HF roll-off (1 kHz to 16 kHz).");
+        m_delayAttachments.push_back(std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(m_apvts, FreePitchID::delayTone, m_delayToneKnob->getSlider()));
+        addChildComponent(m_delayToneKnob.get());
     }
     if (auto* p = m_apvts.getParameter(FreePitchID::delayFreqShift)) {
         m_delayFreqShiftKnob = std::make_unique<RotaryKnob>(*p, "Shift", "Hz");
@@ -202,12 +239,6 @@ EFXDrawerComponent::EFXDrawerComponent(juce::AudioProcessorValueTreeState& apvts
         m_delayDiffusionKnob->setTooltipText("Valhalla Supermassive Diffusion: Smears echoes into lush ambient reverb clouds.");
         m_delayAttachments.push_back(std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(m_apvts, FreePitchID::delayDiffusion, m_delayDiffusionKnob->getSlider()));
         addChildComponent(m_delayDiffusionKnob.get());
-    }
-    if (auto* p = m_apvts.getParameter(FreePitchID::delayTone)) {
-        m_delayToneKnob = std::make_unique<RotaryKnob>(*p, "Damping", "Hz");
-        m_delayToneKnob->setTooltipText("Delay Damping Filter: Analog tape HF roll-off (1 kHz to 16 kHz).");
-        m_delayAttachments.push_back(std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(m_apvts, FreePitchID::delayTone, m_delayToneKnob->getSlider()));
-        addChildComponent(m_delayToneKnob.get());
     }
     if (auto* p = m_apvts.getParameter(FreePitchID::delayMix)) {
         m_delayMixKnob = std::make_unique<RotaryKnob>(*p, "Mix", "%");
@@ -295,12 +326,20 @@ void EFXDrawerComponent::setActiveTab(int index) {
 
     // Delay controls
     m_delayModeBox.setVisible(isDly);
-    if (m_delayTimeKnob)      m_delayTimeKnob->setVisible(isDly);
-    if (m_delayFeedbackKnob)  m_delayFeedbackKnob->setVisible(isDly);
-    if (m_delayFreqShiftKnob) m_delayFreqShiftKnob->setVisible(isDly);
-    if (m_delayDiffusionKnob) m_delayDiffusionKnob->setVisible(isDly);
-    if (m_delayToneKnob)      m_delayToneKnob->setVisible(isDly);
-    if (m_delayMixKnob)       m_delayMixKnob->setVisible(isDly);
+    m_delaySyncModeBox.setVisible(isDly);
+    m_delaySubdivBox.setVisible(isDly);
+    m_delayBpmReadoutLabel.setVisible(isDly);
+    if (isDly) {
+        updateDelayControlsVisibility();
+    } else {
+        if (m_delayTimeKnob)      m_delayTimeKnob->setVisible(false);
+        if (m_delayBpmKnob)       m_delayBpmKnob->setVisible(false);
+        if (m_delayFeedbackKnob)  m_delayFeedbackKnob->setVisible(false);
+        if (m_delayToneKnob)      m_delayToneKnob->setVisible(false);
+        if (m_delayFreqShiftKnob) m_delayFreqShiftKnob->setVisible(false);
+        if (m_delayDiffusionKnob) m_delayDiffusionKnob->setVisible(false);
+        if (m_delayMixKnob)       m_delayMixKnob->setVisible(false);
+    }
 
     resized();
     repaint();
@@ -316,8 +355,39 @@ void EFXDrawerComponent::updateChorusControlsVisibility() {
     if (m_chorusMixKnob)   m_chorusMixKnob->setVisible(true);
 }
 
+void EFXDrawerComponent::updateDelayControlsVisibility() {
+    int syncMode = m_delaySyncModeBox.getSelectedId() - 1; // 0 = Free, 1 = Host, 2 = Manual BPM
+    if (syncMode < 0) syncMode = 0;
+
+    m_delaySubdivBox.setEnabled(syncMode != 0);
+
+    bool showBpmKnob = (syncMode == 2);
+    if (m_delayTimeKnob) m_delayTimeKnob->setVisible(!showBpmKnob);
+    if (m_delayBpmKnob)  m_delayBpmKnob->setVisible(showBpmKnob);
+
+    if (m_delayFeedbackKnob)  m_delayFeedbackKnob->setVisible(true);
+    if (m_delayToneKnob)      m_delayToneKnob->setVisible(true);
+    if (m_delayFreqShiftKnob) m_delayFreqShiftKnob->setVisible(true);
+    if (m_delayDiffusionKnob) m_delayDiffusionKnob->setVisible(true);
+    if (m_delayMixKnob)       m_delayMixKnob->setVisible(true);
+}
+
 void EFXDrawerComponent::updateTelemetry(const PitchTelemetry& telemetry) {
     m_telemetry = telemetry;
+
+    if (m_activeTab == 6) {
+        int syncMode = m_delaySyncModeBox.getSelectedId() - 1;
+        if (syncMode == 1) { // Host
+            m_delayBpmReadoutLabel.setText("HOST: " + juce::String(telemetry.hostBpm, 1) + " BPM", juce::dontSendNotification);
+        } else if (syncMode == 2) { // Manual
+            float manualBpm = 120.0f;
+            if (auto* p = m_apvts.getRawParameterValue(FreePitchID::delayBpm)) manualBpm = p->load();
+            m_delayBpmReadoutLabel.setText("MANUAL: " + juce::String(manualBpm, 1) + " BPM", juce::dontSendNotification);
+        } else {
+            m_delayBpmReadoutLabel.setText(juce::String(telemetry.hostBpm, 1) + " BPM", juce::dontSendNotification);
+        }
+    }
+
     repaint();
 }
 
@@ -407,13 +477,31 @@ void EFXDrawerComponent::resized() {
         if (m_distMixKnob)   m_distMixKnob->setBounds(bayArea);
     } else if (m_activeTab == 6) { // Space Delay
         auto topArea = bayArea.removeFromTop(32);
-        m_delayModeBox.setBounds(topArea.removeFromLeft(140).reduced(2));
-        if (m_delayToneKnob) m_delayToneKnob->setBounds(topArea.removeFromRight(100));
+
+        int gap = 4;
+        int totalW = topArea.getWidth();
+        int modeW = std::clamp(static_cast<int>(totalW * 0.24f), 95, 140);
+        int syncW = std::clamp(static_cast<int>(totalW * 0.26f), 100, 150);
+        int subW  = std::clamp(static_cast<int>(totalW * 0.22f), 85, 130);
+        int bpmW  = std::max(75, totalW - (modeW + syncW + subW + gap * 3));
+
+        m_delayModeBox.setBounds(topArea.removeFromLeft(modeW).reduced(1, 2));
+        topArea.removeFromLeft(gap);
+        m_delaySyncModeBox.setBounds(topArea.removeFromLeft(syncW).reduced(1, 2));
+        topArea.removeFromLeft(gap);
+        m_delaySubdivBox.setBounds(topArea.removeFromLeft(subW).reduced(1, 2));
+        topArea.removeFromLeft(gap);
+        m_delayBpmReadoutLabel.setBounds(topArea.removeFromLeft(bpmW).reduced(1, 2));
+
         bayArea.removeFromTop(8);
 
-        int kw = bayArea.getWidth() / 5;
-        if (m_delayTimeKnob)      m_delayTimeKnob->setBounds(bayArea.removeFromLeft(kw));
+        int kw = bayArea.getWidth() / 6;
+        auto slot0 = bayArea.removeFromLeft(kw);
+        if (m_delayTimeKnob) m_delayTimeKnob->setBounds(slot0);
+        if (m_delayBpmKnob)  m_delayBpmKnob->setBounds(slot0);
+
         if (m_delayFeedbackKnob)  m_delayFeedbackKnob->setBounds(bayArea.removeFromLeft(kw));
+        if (m_delayToneKnob)      m_delayToneKnob->setBounds(bayArea.removeFromLeft(kw));
         if (m_delayFreqShiftKnob) m_delayFreqShiftKnob->setBounds(bayArea.removeFromLeft(kw));
         if (m_delayDiffusionKnob) m_delayDiffusionKnob->setBounds(bayArea.removeFromLeft(kw));
         if (m_delayMixKnob)       m_delayMixKnob->setBounds(bayArea);
@@ -593,11 +681,15 @@ void EFXDrawerComponent::updateThemeColors() {
     updateKnob(m_distMixKnob);
 
     updateKnob(m_delayTimeKnob);
+    updateKnob(m_delayBpmKnob);
     updateKnob(m_delayFeedbackKnob);
     updateKnob(m_delayFreqShiftKnob);
     updateKnob(m_delayDiffusionKnob);
     updateKnob(m_delayMixKnob);
     updateKnob(m_delayToneKnob);
+
+    const auto& p = FreePitchLookAndFeel::getPalette();
+    m_delayBpmReadoutLabel.setColour(juce::Label::textColourId, p.accentCyan);
 
     repaint();
 }
@@ -633,5 +725,8 @@ void EFXDrawerComponent::paint(juce::Graphics& g) {
         g.drawRoundedRectangle(badgeArea, 3.0f, 1.0f);
         g.setFont(juce::FontOptions(10.0f, juce::Font::bold));
         g.drawText("MONO CAUTION: DELAY > 18ms", badgeArea, juce::Justification::centred);
+    } else if (m_activeTab == 6 && !m_delayBpmReadoutLabel.getBounds().isEmpty()) {
+        auto bpmArea = m_delayBpmReadoutLabel.getBounds().toFloat();
+        FreePitchLookAndFeel::drawNeumorphicSunken(g, bpmArea, 4.0f, 1.5f);
     }
 }

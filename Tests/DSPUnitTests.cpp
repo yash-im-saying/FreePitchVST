@@ -663,6 +663,73 @@ int main() {
         }
     }
 
+    // -------------------------------------------------------------
+    // TEST 14: Delay Tempo Sync & Musical Subdivision Accuracy
+    // -------------------------------------------------------------
+    std::cout << "\n[TEST 14] Testing Delay Tempo Sync & Musical Subdivision Timing...\n";
+    {
+        totalTests++;
+        bool allSyncPassed = true;
+
+        // 1. Free Mode (ms)
+        float tFree = calculateDelayTimeMs(0, 350.0f, 7, 120.0f, 120.0f);
+        if (std::abs(tFree - 350.0f) > 0.01f) allSyncPassed = false;
+
+        // 2. Host Tempo 120 BPM, 1/4 note (Index 9) -> 500.0 ms
+        float t120_quarter = calculateDelayTimeMs(1, 250.0f, 9, 120.0f, 120.0f);
+        if (std::abs(t120_quarter - 500.0f) > 0.01f) allSyncPassed = false;
+
+        // 3. Host Tempo 120 BPM, 1/8D dotted eighth (Index 7) -> 375.0 ms
+        float t120_dot8 = calculateDelayTimeMs(1, 250.0f, 7, 120.0f, 120.0f);
+        if (std::abs(t120_dot8 - 375.0f) > 0.01f) allSyncPassed = false;
+
+        // 4. Host Tempo 140 BPM, 1/2 note (Index 12) -> (60/140)*2000 = 857.1428 ms
+        float t140_half = calculateDelayTimeMs(1, 250.0f, 12, 140.0f, 120.0f);
+        float expected140Half = (60.0f / 140.0f) * 2000.0f;
+        if (std::abs(t140_half - expected140Half) > 0.05f) allSyncPassed = false;
+
+        // 5. Manual BPM 96 BPM, 1/8 note (Index 6) -> (60/96)*500 = 312.5 ms
+        float t96_eighth = calculateDelayTimeMs(2, 250.0f, 6, 120.0f, 96.0f);
+        if (std::abs(t96_eighth - 312.5f) > 0.01f) allSyncPassed = false;
+
+        // 6. EFXRack Audio Execution with 1/8D Tempo Sync (375 ms at 48kHz = 18000 samples)
+        EFXRack rack;
+        rack.prepare(sampleRate, 512);
+        rack.setDelayParams(true, 0, t120_dot8, 40.0f, 0.0f, 0.0f, 12000.0f, 100.0f);
+
+        const int blockSize = 512;
+        const int numBlocks = 45; // ~23040 samples > 18000
+        std::vector<float> impL(blockSize * numBlocks, 0.0f);
+        std::vector<float> impR(blockSize * numBlocks, 0.0f);
+        impL[0] = 1.0f;
+
+        for (int b = 0; b < numBlocks; ++b) {
+            rack.process(impL.data() + b * blockSize, impR.data() + b * blockSize, blockSize);
+        }
+
+        int peakPos = 0;
+        float peakVal = 0.0f;
+        for (int i = 500; i < blockSize * numBlocks; ++i) {
+            if (std::abs(impL[i]) > peakVal) {
+                peakVal = std::abs(impL[i]);
+                peakPos = i;
+            }
+        }
+        float measuredSyncDelayMs = (static_cast<float>(peakPos) / static_cast<float>(sampleRate)) * 1000.0f;
+        if (std::abs(measuredSyncDelayMs - 375.0f) > 5.0f) allSyncPassed = false;
+
+        std::cout << "  120 BPM 1/8D: " << t120_dot8 << " ms (Measured: " << measuredSyncDelayMs << " ms)"
+                  << " | 140 BPM 1/2: " << t140_half << " ms"
+                  << " | 96 BPM 1/8: " << t96_eighth << " ms";
+
+        if (allSyncPassed) {
+            std::cout << " -> [PASS] (Tempo Sync & Subdivisions 100% Accurate)\n";
+            testsPassed++;
+        } else {
+            std::cout << " -> [FAIL]\n";
+        }
+    }
+
     std::cout << "\n====================================================\n";
     std::cout << " TEST RESULTS: " << testsPassed << " / " << totalTests << " PASSED ("
               << (testsPassed == totalTests ? "100%" : "FAILURES DETECTED") << ")\n";

@@ -84,6 +84,8 @@ private:
     std::atomic<float> m_atomicOutputRmsDb { -100.0f };
     std::atomic<uint32_t> m_customScaleMask { 0x0FFF };
     std::atomic<bool>     m_isDarkTheme { true };
+    std::atomic<float>    m_atomicHostBpm { 120.0f };
+    std::atomic<float>    m_atomicEffectiveDelayMs { 250.0f };
 
     // Cached parameter pointers for zero-overhead audio thread lookup
     std::atomic<float>* m_prmVocalMode = nullptr;
@@ -144,6 +146,9 @@ private:
     // Delay / Echo
     std::atomic<float>* m_prmDelayEnabled = nullptr;
     std::atomic<float>* m_prmDelayMode = nullptr;
+    std::atomic<float>* m_prmDelaySyncMode = nullptr;
+    std::atomic<float>* m_prmDelaySubdiv = nullptr;
+    std::atomic<float>* m_prmDelayBpm = nullptr;
     std::atomic<float>* m_prmDelayTime = nullptr;
     std::atomic<float>* m_prmDelayFeedback = nullptr;
     std::atomic<float>* m_prmDelayFreqShift = nullptr;

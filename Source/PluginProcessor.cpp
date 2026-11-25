@@ -68,6 +68,9 @@ void FreePitchAudioProcessor::cacheParameterPointers() {
 
     m_prmDelayEnabled    = getRaw(FreePitchID::delayEnabled);
     m_prmDelayMode       = getRaw(FreePitchID::delayMode);
+    m_prmDelaySyncMode   = getRaw(FreePitchID::delaySyncMode);
+    m_prmDelaySubdiv     = getRaw(FreePitchID::delaySubdiv);
+    m_prmDelayBpm        = getRaw(FreePitchID::delayBpm);
     m_prmDelayTime       = getRaw(FreePitchID::delayTime);
     m_prmDelayFeedback   = getRaw(FreePitchID::delayFeedback);
     m_prmDelayFreqShift  = getRaw(FreePitchID::delayFreqShift);
@@ -134,6 +137,8 @@ PitchTelemetry FreePitchAudioProcessor::getLatestTelemetry() {
     t.inputRmsDb = m_atomicInputRmsDb.load();
     t.outputRmsDb = m_atomicOutputRmsDb.load();
     t.customScaleMask = m_customScaleMask.load();
+    t.hostBpm = m_atomicHostBpm.load();
+    t.effectiveDelayMs = m_atomicEffectiveDelayMs.load();
     return t;
 }
 
@@ -285,9 +290,30 @@ void FreePitchAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juc
                            getFloat(m_prmDistTone, 8000.0f),
                            getFloat(m_prmDistMix, 30.0f));
 
+    // Live DAW Host Tempo Detection & Delay Tempo Sync
+    float currentBpm = 120.0f;
+    if (auto* playHead = getPlayHead()) {
+        if (auto posOpt = playHead->getPosition()) {
+            if (auto bpmOpt = posOpt->getBpm()) {
+                if (*bpmOpt > 20.0 && *bpmOpt < 400.0) {
+                    currentBpm = static_cast<float>(*bpmOpt);
+                }
+            }
+        }
+    }
+    m_atomicHostBpm.store(currentBpm);
+
+    int syncMode = static_cast<int>(getFloat(m_prmDelaySyncMode, 0.0f));
+    int subdivIdx = static_cast<int>(getFloat(m_prmDelaySubdiv, 7.0f));
+    float freeTimeMs = getFloat(m_prmDelayTime, 250.0f);
+    float manualBpm = getFloat(m_prmDelayBpm, 120.0f);
+
+    float effectiveDelayMs = calculateDelayTimeMs(syncMode, freeTimeMs, subdivIdx, currentBpm, manualBpm);
+    m_atomicEffectiveDelayMs.store(effectiveDelayMs);
+
     m_efxRack.setDelayParams(getFloat(m_prmDelayEnabled, 0.0f) > 0.5f,
                             static_cast<int>(getFloat(m_prmDelayMode, 0.0f)),
-                            getFloat(m_prmDelayTime, 250.0f),
+                            effectiveDelayMs,
                             getFloat(m_prmDelayFeedback, 35.0f),
                             getFloat(m_prmDelayFreqShift, 0.0f),
                             getFloat(m_prmDelayDiffusion, 0.0f),

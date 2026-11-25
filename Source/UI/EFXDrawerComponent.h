@@ -88,6 +88,13 @@ private:
     // Delay Controls (H-Delay, Supermassive, FreqEcho)
     juce::ComboBox m_delayModeBox;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> m_delayModeAttachment;
+    juce::ComboBox m_delaySyncModeBox;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> m_delaySyncModeAttachment;
+    juce::ComboBox m_delaySubdivBox;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> m_delaySubdivAttachment;
+    std::unique_ptr<RotaryKnob> m_delayBpmKnob;
+    juce::Label m_delayBpmReadoutLabel;
+
     std::unique_ptr<RotaryKnob> m_delayTimeKnob;
     std::unique_ptr<RotaryKnob> m_delayFeedbackKnob;
     std::unique_ptr<RotaryKnob> m_delayFreqShiftKnob;
@@ -99,6 +106,7 @@ private:
     void setupTab(ModuleTab& tab, const juce::String& name, const char* paramID, int tabIndex, const juce::String& tip);
     void setActiveTab(int index);
     void updateChorusControlsVisibility();
+    void updateDelayControlsVisibility();
 
     void paintEqCurve(juce::Graphics& g, juce::Rectangle<float> area);
     void paintCompMeter(juce::Graphics& g, juce::Rectangle<float> area);
