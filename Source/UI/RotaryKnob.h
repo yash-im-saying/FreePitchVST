@@ -15,8 +15,9 @@ public:
 
     juce::Slider& getSlider() { return m_slider; }
 
-    void setAccentAmber(bool isAmber);
     void setHero(bool isHero);
+    void setMini(bool isMini);
+    void setAccentAmber(bool isAmber);
     void setTooltipText(const juce::String& text);
     void updateThemeColors();
 
@@ -27,7 +28,11 @@ private:
     juce::Label m_titleLabel;
     juce::Label m_valueLabel;
     bool m_isHero = false;
+    bool m_isMini = false;
 
+    juce::Image m_cachedBackground;
+
+    void renderCachedBackground();
     void updateValueDisplay();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(RotaryKnob)

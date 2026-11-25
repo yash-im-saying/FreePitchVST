@@ -1,7 +1,8 @@
 #include "PianoKeyboardComponent.h"
+#include <cmath>
 
 PianoKeyboardComponent::PianoKeyboardComponent() {
-    setTooltip("Piano Keyboard: Displays active scale notes and tracks sung pitch in real time. Click any key to toggle it in or out of the scale.");
+    setTooltip("Interactive Piano: Click any key to toggle it in or out of the active scale. Highlights real-time detected vocal note.");
 }
 
 void PianoKeyboardComponent::setVocalMode(VocalMode mode) {
@@ -41,8 +42,8 @@ bool PianoKeyboardComponent::isNoteInScale(int midiNote) const {
         case ScaleType::NaturalMinor: mask = 0x05AD; break; // 0,2,3,5,7,8,10
         case ScaleType::HarmonicMinor: mask = 0x09AD; break;
         case ScaleType::MelodicMinor: mask = 0x0AAD; break;
-        case ScaleType::PentatonicMajor: mask = 0x02A5; break; // 0,2,4,7,9
-        case ScaleType::PentatonicMinor: mask = 0x0499; break; // 0,3,5,7,10
+        case ScaleType::PentatonicMajor: mask = 0x02A5; break;
+        case ScaleType::PentatonicMinor: mask = 0x0499; break;
         case ScaleType::Custom: mask = static_cast<uint16_t>(m_customMask); break;
         default: mask = 0x0FFF; break;
     }
@@ -58,7 +59,6 @@ void PianoKeyboardComponent::mouseDown(const juce::MouseEvent& e) {
         int noteInOctave = ((midi % 12) + 12) % 12;
         int rel = ((noteInOctave - m_keyRoot) + 12) % 12;
 
-        // Toggle in custom mask
         m_customMask ^= (1 << rel);
         if ((m_customMask & 0x0FFF) == 0) m_customMask = 0x0FFF;
 
@@ -79,7 +79,7 @@ int PianoKeyboardComponent::getMidiFromPosition(float x, float y) const {
     float whiteKeyWidth = static_cast<float>(getWidth()) / static_cast<float>(numWhiteKeys);
     float blackKeyHeight = getHeight() * 0.62f;
 
-    // Check black keys first if y is in top 62%
+    // Check black keys first
     if (y < blackKeyHeight) {
         int whiteIndex = 0;
         for (int m = kStartMidi; m <= kEndMidi; ++m) {
@@ -95,7 +95,7 @@ int PianoKeyboardComponent::getMidiFromPosition(float x, float y) const {
         }
     }
 
-    // Otherwise check white keys
+    // White keys
     int whiteIdx = static_cast<int>(x / whiteKeyWidth);
     int currentWhite = 0;
     for (int m = kStartMidi; m <= kEndMidi; ++m) {
@@ -109,9 +109,18 @@ int PianoKeyboardComponent::getMidiFromPosition(float x, float y) const {
 }
 
 void PianoKeyboardComponent::paint(juce::Graphics& g) {
+    using namespace FreePitchColors;
     auto bounds = getLocalBounds().toFloat();
-    const auto& p = FreePitchLookAndFeel::getPalette();
-    bool isDarkTheme = FreePitchLookAndFeel::isDark();
+
+    // 1. Recessed keyboard trough (#101215)
+    g.setColour(cavityRecessed);
+    g.fillRect(bounds);
+
+    // Beveled top inner shadow
+    g.setColour(innerCavityDark);
+    g.fillRect(bounds.removeFromTop(2.0f));
+
+    bounds = getLocalBounds().toFloat().withTrimmedTop(2.0f);
 
     int minVocalMidi = g_vocalModeBounds[static_cast<int>(m_vocalMode)].minMidi;
     int maxVocalMidi = g_vocalModeBounds[static_cast<int>(m_vocalMode)].maxMidi;
@@ -121,154 +130,120 @@ void PianoKeyboardComponent::paint(juce::Graphics& g) {
         if (!isBlackKey(m)) numWhiteKeys++;
     }
     float whiteKeyWidth = bounds.getWidth() / static_cast<float>(numWhiteKeys);
-    float blackKeyHeight = bounds.getHeight() * 0.62f;
-    float blackKeyWidth = whiteKeyWidth * 0.68f;
+    float blackKeyHeight = bounds.getHeight() * 0.60f;
+    float blackKeyWidth = whiteKeyWidth * 0.66f;
 
-    // 1. Draw Ivory White Keys
+    // 2. Draw Crisp Soft-White Keys
     int whiteIdx = 0;
     for (int m = kStartMidi; m <= kEndMidi; ++m) {
         if (!isBlackKey(m)) {
             float kx = static_cast<float>(whiteIdx) * whiteKeyWidth;
-            auto keyRect = juce::Rectangle<float>(kx, 0.0f, whiteKeyWidth, bounds.getHeight());
+            auto keyRect = juce::Rectangle<float>(kx + 0.5f, bounds.getY(), whiteKeyWidth - 1.0f, bounds.getHeight() - 1.0f);
 
             bool inVocalRange = (m >= minVocalMidi && m <= maxVocalMidi);
             bool inScale = isNoteInScale(m);
             bool isDetected = (m_isVoiced && m == m_detectedMidi);
             bool isTarget = (m_isVoiced && m == m_targetMidi);
 
-            juce::Colour topCol;
-            juce::Colour botCol;
+            if (isDetected) {
+                // Glowing Signal Red (#FF2E3B) with outer bloom
+                g.setColour(signalRedBloom);
+                g.fillRoundedRectangle(keyRect.expanded(2.0f), 2.0f);
 
-            if (isDarkTheme) {
-                topCol = juce::Colour(0xFF282D38);
-                botCol = juce::Colour(0xFF1D2128);
-                if (!inVocalRange) {
-                    topCol = juce::Colour(0xFF16191F);
-                    botCol = juce::Colour(0xFF101216);
-                } else if (!inScale) {
-                    topCol = juce::Colour(0xFF20242D);
-                    botCol = juce::Colour(0xFF171A20);
-                }
+                juce::ColourGradient grad(signalRed.brighter(0.15f), kx, bounds.getY(),
+                                          signalRed, kx, bounds.getBottom(), false);
+                g.setGradientFill(grad);
+                g.fillRoundedRectangle(keyRect, 2.0f);
+            } else if (isTarget) {
+                juce::ColourGradient grad(signalRed.withAlpha(0.65f), kx, bounds.getY(),
+                                          signalRed.withAlpha(0.40f), kx, bounds.getBottom(), false);
+                g.setGradientFill(grad);
+                g.fillRoundedRectangle(keyRect, 2.0f);
             } else {
-                topCol = juce::Colour(0xFFFFFFFF);
-                botCol = juce::Colour(0xFFE8EDF4);
-                if (!inVocalRange) {
-                    topCol = juce::Colour(0xFFD3D9E2);
-                    botCol = juce::Colour(0xFFC4CBD6);
-                } else if (!inScale) {
-                    topCol = juce::Colour(0xFFBAC5D3);
-                    botCol = juce::Colour(0xFFAAB6C6);
+                juce::Colour topCol = inVocalRange ? juce::Colour(0xFFF2F4F8) : juce::Colour(0xFFD4D8E0);
+                juce::Colour botCol = inVocalRange ? juce::Colour(0xFFE0E5EC) : juce::Colour(0xFFBCC2CD);
+
+                if (!inScale) {
+                    topCol = topCol.darker(0.15f);
+                    botCol = botCol.darker(0.15f);
                 }
+
+                juce::ColourGradient grad(topCol, kx, bounds.getY(), botCol, kx, bounds.getBottom(), false);
+                g.setGradientFill(grad);
+                g.fillRoundedRectangle(keyRect, 2.0f);
             }
 
-            if (isTarget) {
-                topCol = p.accentAmber;
-                botCol = p.accentAmber.darker(0.25f);
-            } else if (isDetected) {
-                topCol = p.accentCyan;
-                botCol = p.accentCyan.darker(0.25f);
-            }
+            // Key outline
+            g.setColour(cavityRecessed.withAlpha(0.5f));
+            g.drawRoundedRectangle(keyRect, 2.0f, 0.8f);
 
-            juce::ColourGradient grad(topCol, kx, 0.0f, botCol, kx, bounds.getHeight(), false);
-            g.setGradientFill(grad);
-            g.fillRoundedRectangle(keyRect, 2.0f);
-
-            // Active scale note indicator dot at bottom of in-scale white keys
-            if (inScale && inVocalRange && !isTarget && !isDetected) {
-                float dotRadius = 2.2f;
-                g.setColour(p.accentCyan.withAlpha(0.75f));
-                g.fillEllipse(kx + whiteKeyWidth * 0.5f - dotRadius, bounds.getHeight() - 16.0f,
-                              dotRadius * 2.0f, dotRadius * 2.0f);
-            }
-
-            // Hairline separator between keys
-            g.setColour(p.bgBase);
-            g.drawRect(keyRect, 0.8f);
-
-            // Print Note Name (e.g. C1, C2, C3, C4, C5, C6) on C keys
-            if (m % 12 == 0) {
-                int oct = (m / 12) - 1;
-                g.setColour(isTarget || isDetected ? juce::Colours::black : p.textDim);
-                g.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 9.5f, juce::Font::bold));
-                g.drawText("C" + juce::String(oct), keyRect.removeFromBottom(16.0f), juce::Justification::centred);
+            // Subtle scale-membership dot at bottom of in-scale white keys
+            if (inScale && !isDetected && !isTarget) {
+                float dotR = 2.0f;
+                g.setColour(inVocalRange ? textSecondary : textDim);
+                g.fillEllipse(kx + whiteKeyWidth * 0.5f - dotR, bounds.getBottom() - 10.0f, dotR * 2.0f, dotR * 2.0f);
             }
 
             whiteIdx++;
         }
     }
 
-    // 2. Draw Ebony Black Keys
+    // 3. Draw Matte Charcoal Black Keys
     whiteIdx = 0;
     for (int m = kStartMidi; m <= kEndMidi; ++m) {
         if (isBlackKey(m)) {
             float blackCenterX = static_cast<float>(whiteIdx) * whiteKeyWidth;
-            auto blackRect = juce::Rectangle<float>(blackCenterX - blackKeyWidth * 0.5f, 0.0f, blackKeyWidth, blackKeyHeight);
+            auto keyRect = juce::Rectangle<float>(blackCenterX - blackKeyWidth * 0.5f, bounds.getY(),
+                                                  blackKeyWidth, blackKeyHeight);
 
             bool inVocalRange = (m >= minVocalMidi && m <= maxVocalMidi);
             bool inScale = isNoteInScale(m);
             bool isDetected = (m_isVoiced && m == m_detectedMidi);
             bool isTarget = (m_isVoiced && m == m_targetMidi);
 
-            // Skeuomorphic drop shadow cast by raised black key onto white keys below
-            g.setColour(p.shadowDark);
-            g.fillRoundedRectangle(blackRect.translated(1.5f, 2.5f), 2.5f);
+            if (isDetected) {
+                g.setColour(signalRedBloom);
+                g.fillRoundedRectangle(keyRect.expanded(2.0f), 2.0f);
 
-            juce::Colour topCol = isDarkTheme ? juce::Colour(0xFF262C37) : juce::Colour(0xFF333D4B);
-            juce::Colour botCol = isDarkTheme ? juce::Colour(0xFF11141A) : juce::Colour(0xFF1E242C);
+                juce::ColourGradient grad(signalRed.brighter(0.2f), blackCenterX, bounds.getY(),
+                                          signalRed, blackCenterX, bounds.getY() + blackKeyHeight, false);
+                g.setGradientFill(grad);
+                g.fillRoundedRectangle(keyRect, 2.0f);
+            } else if (isTarget) {
+                juce::ColourGradient grad(signalRed.withAlpha(0.70f), blackCenterX, bounds.getY(),
+                                          signalRed.withAlpha(0.45f), blackCenterX, bounds.getY() + blackKeyHeight, false);
+                g.setGradientFill(grad);
+                g.fillRoundedRectangle(keyRect, 2.0f);
+            } else {
+                juce::Colour topCol = inVocalRange ? juce::Colour(0xFF1E2127) : juce::Colour(0xFF14161A);
+                juce::Colour botCol = inVocalRange ? juce::Colour(0xFF121418) : juce::Colour(0xFF0D0F12);
 
-            if (!inVocalRange) {
-                topCol = isDarkTheme ? juce::Colour(0xFF14171E) : juce::Colour(0xFF202630);
-                botCol = isDarkTheme ? juce::Colour(0xFF0A0C0F) : juce::Colour(0xFF14181E);
-            } else if (!inScale) {
-                topCol = isDarkTheme ? juce::Colour(0xFF1D222B) : juce::Colour(0xFF272F3A);
-                botCol = isDarkTheme ? juce::Colour(0xFF0F1116) : juce::Colour(0xFF181C22);
+                if (!inScale) {
+                    topCol = topCol.darker(0.12f);
+                    botCol = botCol.darker(0.12f);
+                }
+
+                // Dual opposing shadow on black keys
+                g.setColour(deepShadow.withAlpha(0.7f));
+                g.fillRoundedRectangle(keyRect.translated(1.0f, 1.5f), 2.0f);
+
+                juce::ColourGradient grad(topCol, blackCenterX, bounds.getY(), botCol, blackCenterX, bounds.getY() + blackKeyHeight, false);
+                g.setGradientFill(grad);
+                g.fillRoundedRectangle(keyRect, 2.0f);
+
+                // Top-left chamfer rim
+                g.setColour(rimHighlight.withAlpha(0.5f));
+                g.drawRoundedRectangle(keyRect, 2.0f, 0.8f);
             }
 
-            if (isTarget) {
-                topCol = p.accentAmber;
-                botCol = p.accentAmber.darker(0.35f);
-            } else if (isDetected) {
-                topCol = p.accentCyan;
-                botCol = p.accentCyan.darker(0.35f);
+            // Subtle scale-membership dot on black keys
+            if (inScale && !isDetected && !isTarget) {
+                float dotR = 1.8f;
+                g.setColour(inVocalRange ? textSecondary : textDim);
+                g.fillEllipse(blackCenterX - dotR, bounds.getY() + blackKeyHeight - 8.0f, dotR * 2.0f, dotR * 2.0f);
             }
-
-            juce::ColourGradient blackGrad(topCol, blackRect.getX(), 0.0f, botCol, blackRect.getX(), blackKeyHeight, false);
-            g.setGradientFill(blackGrad);
-            g.fillRoundedRectangle(blackRect.reduced(0.5f, 0.0f), 2.5f);
-
-            // Active scale note dot on black keys
-            if (inScale && inVocalRange && !isTarget && !isDetected) {
-                float dotRadius = 2.0f;
-                g.setColour(p.accentCyan.withAlpha(0.75f));
-                g.fillEllipse(blackCenterX - dotRadius, blackKeyHeight - 10.0f,
-                              dotRadius * 2.0f, dotRadius * 2.0f);
-            }
-
-            g.setColour(p.bgBase);
-            g.drawRoundedRectangle(blackRect.reduced(0.5f, 0.0f), 2.0f, 1.0f);
         } else {
             whiteIdx++;
         }
     }
-
-    // 3. Crisp Vocal Range Bounds Bracket across top of keyboard
-    float rangeX1 = 0.0f;
-    float rangeX2 = bounds.getWidth();
-    whiteIdx = 0;
-    for (int m = kStartMidi; m <= kEndMidi; ++m) {
-        if (!isBlackKey(m)) {
-            if (m == minVocalMidi || (m > minVocalMidi && rangeX1 == 0.0f)) {
-                rangeX1 = static_cast<float>(whiteIdx) * whiteKeyWidth;
-            }
-            if (m == maxVocalMidi || m < maxVocalMidi) {
-                rangeX2 = static_cast<float>(whiteIdx + 1) * whiteKeyWidth;
-            }
-            whiteIdx++;
-        }
-    }
-
-    g.setColour(p.accentAmber);
-    g.drawHorizontalLine(1, rangeX1, rangeX2);
-    g.drawVerticalLine(static_cast<int>(rangeX1), 0.0f, 7.0f);
-    g.drawVerticalLine(static_cast<int>(rangeX2), 0.0f, 7.0f);
 }

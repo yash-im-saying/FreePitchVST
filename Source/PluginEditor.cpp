@@ -4,211 +4,190 @@
 FreePitchAudioProcessorEditor::FreePitchAudioProcessorEditor(FreePitchAudioProcessor& p)
     : AudioProcessorEditor(&p),
       m_processor(p),
-      m_efxDrawer(p.getAPVTS(), p.getEFXRack()) {
+      m_efxRack(p.getAPVTS(), p.getEFXRack()) {
 
     juce::LookAndFeel::setDefaultLookAndFeel(&m_lookAndFeel);
 
-    // --- Top Bar Branding ---
-    bool isDark = m_processor.isDarkTheme();
-    m_lookAndFeel.setThemeMode(isDark ? FreePitchLookAndFeel::ThemeMode::Dark : FreePitchLookAndFeel::ThemeMode::Light);
-
+    // ========================================================================
+    // 1. Header Bar Components
+    // ========================================================================
+    // Left: Wordmark & VST3 Badge
     m_titleLabel.setText("FREEPITCH", juce::dontSendNotification);
-    m_titleLabel.setFont(juce::FontOptions(juce::Font::getDefaultSansSerifFontName(), 18.0f, juce::Font::bold));
-    m_titleLabel.setColour(juce::Label::textColourId, FreePitchLookAndFeel::kTextWhite);
+    m_titleLabel.setFont(juce::FontOptions(juce::Font::getDefaultSansSerifFontName(), 21.0f, juce::Font::bold));
+    m_titleLabel.setColour(juce::Label::textColourId, FreePitchColors::textPrimary);
     addAndMakeVisible(m_titleLabel);
 
-    m_subtitleLabel.setText("PRO REAL-TIME TUNING", juce::dontSendNotification);
-    m_subtitleLabel.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 9.0f, juce::Font::bold));
-    m_subtitleLabel.setColour(juce::Label::textColourId, FreePitchLookAndFeel::kAccentCyan);
-    addAndMakeVisible(m_subtitleLabel);
+    m_vst3Badge.setText("VST3", juce::dontSendNotification);
+    m_vst3Badge.setFont(juce::FontOptions(juce::Font::getDefaultSansSerifFontName(), 9.5f, juce::Font::bold));
+    m_vst3Badge.setColour(juce::Label::textColourId, FreePitchColors::textSecondary);
+    m_vst3Badge.setJustificationType(juce::Justification::centred);
+    addAndMakeVisible(m_vst3Badge);
 
-    m_versionLabel.setText("v1.0.0", juce::dontSendNotification);
-    m_versionLabel.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 9.5f, juce::Font::plain));
-    m_versionLabel.setColour(juce::Label::textColourId, FreePitchLookAndFeel::kTextDim);
-    addAndMakeVisible(m_versionLabel);
-
-    m_themeToggleBtn.setTooltip("Theme Mode: Switch between Skeuomorphic Dark and Light Studio Themes");
-    m_themeToggleBtn.onClick = [this]() {
-        bool newDark = !m_lookAndFeel.isDarkTheme();
-        m_lookAndFeel.setThemeMode(newDark ? FreePitchLookAndFeel::ThemeMode::Dark : FreePitchLookAndFeel::ThemeMode::Light);
-        m_processor.setDarkTheme(newDark);
-        updateThemeUI();
-    };
-    addAndMakeVisible(m_themeToggleBtn);
-
-    // --- Presets Section ---
-    m_prevPresetBtn.setTooltip("Previous Preset");
-    m_prevPresetBtn.onClick = [this]() {
-        m_processor.getPresetManager().previousPreset();
-        updatePresetBox();
-    };
-    addAndMakeVisible(m_prevPresetBtn);
-
-    m_nextPresetBtn.setTooltip("Next Preset");
-    m_nextPresetBtn.onClick = [this]() {
-        m_processor.getPresetManager().nextPreset();
-        updatePresetBox();
-    };
-    addAndMakeVisible(m_nextPresetBtn);
-
+    // Center: Preset Selector Pill
+    m_presetSelector = std::make_unique<HeaderPillSelector>("");
+    m_presetSelector->setTooltip("Preset Library: Audition factory vocal styles or manage your user presets.");
     updatePresetBox();
-    m_presetBox.setTooltip("Preset Library: Choose from curated vocal starting points or your saved user presets.");
-    m_presetBox.onChange = [this]() {
-        int idx = m_presetBox.getSelectedId() - 1;
+    m_presetSelector->getComboBox().onChange = [this]() {
+        int idx = m_presetSelector->getComboBox().getSelectedId() - 1;
         if (idx >= 0) {
             m_processor.getPresetManager().loadPreset(idx);
+            m_presetSelector->repaint();
         }
     };
-    addAndMakeVisible(m_presetBox);
+    addAndMakeVisible(m_presetSelector.get());
 
-    m_savePresetBtn.setTooltip("Save Preset: Stores current tuning and effect settings as a new user preset.");
-    m_savePresetBtn.onClick = [this]() {
-        int nextNum = m_processor.getPresetManager().getNumPresets() + 1;
-        m_processor.getPresetManager().saveUserPreset("User Preset " + juce::String(nextNum));
-        updatePresetBox();
-    };
-    addAndMakeVisible(m_savePresetBtn);
+    // Center: Key & Scale Selector Pill (e.g. "C MINOR" with subtitle "KEY/SCALE")
+    m_keyScaleSelector = std::make_unique<HeaderPillSelector>("KEY/SCALE");
+    m_keyScaleSelector->setTooltip("Key & Scale: Root note and musical scale for real-time pitch quantization.");
 
-    m_abCompareBtn.setTooltip("A / B Compare: Instantly compare current settings against an alternate audition state.");
-    m_abCompareBtn.onClick = [this]() {
-        m_processor.getPresetManager().toggleAB();
-        bool isB = m_processor.getPresetManager().isStateB();
-        m_abCompareBtn.setButtonText(isB ? "STATE B" : "STATE A");
-    };
-    addAndMakeVisible(m_abCompareBtn);
-
-    // --- Key & Scale Pickers ---
+    auto& keyBox = m_keyScaleSelector->getComboBox();
     const char* roots[] = { "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B" };
-    for (int i = 0; i < 12; ++i) {
-        m_keyRootBox.addItem(roots[i], i + 1);
-    }
-    m_keyRootBox.setTooltip("Musical Key: Sets the root note of the correction scale (C through B).");
-    m_keyRootAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
-        m_processor.getAPVTS(), FreePitchID::keyRoot, m_keyRootBox);
-    addAndMakeVisible(m_keyRootBox);
+    const char* scales[] = { "Chromatic", "Major", "Minor", "Harmonic Min", "Melodic Min", "Pentatonic Maj", "Pentatonic Min", "Custom" };
 
-    const char* scales[] = { "Chromatic", "Major", "Natural Minor", "Harmonic Minor",
-                             "Melodic Minor", "Pentatonic Major", "Pentatonic Minor", "Custom" };
-    for (int i = 0; i < 8; ++i) {
-        m_scaleTypeBox.addItem(scales[i], i + 1);
+    // Fill combo with common key/scale pairs for quick dropdown
+    for (int k = 0; k < 12; ++k) {
+        for (int s = 0; s < 8; ++s) {
+            keyBox.addItem(juce::String(roots[k]) + " " + juce::String(scales[s]).toUpperCase(), (k * 8 + s) + 1);
+        }
     }
-    m_scaleTypeBox.setTooltip("Scale Type: Selects the musical scale mode. Choose Custom to edit notes directly on the keyboard.");
-    m_scaleTypeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
-        m_processor.getAPVTS(), FreePitchID::scaleType, m_scaleTypeBox);
-    addAndMakeVisible(m_scaleTypeBox);
 
-    // --- Lookahead / Latency Mode ---
-    m_lookaheadToggle.setButtonText("LOOKAHEAD");
-    m_lookaheadToggle.setTooltip("Lookahead Mode: Engages a 20 ms lookahead buffer for refined pitch transitions during mixing.\nToggle off for ultra-low latency live tracking.");
+    auto updateKeyScaleDisplay = [this, roots, scales]() {
+        auto* keyParam = dynamic_cast<juce::AudioParameterChoice*>(m_processor.getAPVTS().getParameter(FreePitchID::keyRoot));
+        auto* scaleParam = dynamic_cast<juce::AudioParameterChoice*>(m_processor.getAPVTS().getParameter(FreePitchID::scaleType));
+        int k = keyParam ? keyParam->getIndex() : 0;
+        int s = scaleParam ? scaleParam->getIndex() : 0;
+        k = std::clamp(k, 0, 11);
+        s = std::clamp(s, 0, 7);
+        m_keyScaleSelector->getComboBox().setSelectedId(k * 8 + s + 1, juce::dontSendNotification);
+        m_keyScaleSelector->repaint();
+    };
+
+    keyBox.onChange = [this, updateKeyScaleDisplay]() {
+        int id = m_keyScaleSelector->getComboBox().getSelectedId() - 1;
+        if (id >= 0) {
+            int k = id / 8;
+            int s = id % 8;
+            if (auto* keyParam = m_processor.getAPVTS().getParameter(FreePitchID::keyRoot))
+                keyParam->setValueNotifyingHost(keyParam->convertTo0to1(static_cast<float>(k)));
+            if (auto* scaleParam = m_processor.getAPVTS().getParameter(FreePitchID::scaleType))
+                scaleParam->setValueNotifyingHost(scaleParam->convertTo0to1(static_cast<float>(s)));
+        }
+    };
+    updateKeyScaleDisplay();
+    addAndMakeVisible(m_keyScaleSelector.get());
+
+    // Right: Latency Mode Toggle (TRACK vs LOOKAHEAD)
+    m_latencyToggle = std::make_unique<SegmentedLatencyToggle>();
     m_lookaheadAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
-        m_processor.getAPVTS(), FreePitchID::lookaheadMode, m_lookaheadToggle);
-    addAndMakeVisible(m_lookaheadToggle);
+        m_processor.getAPVTS(), FreePitchID::lookaheadMode, m_latencyToggle->getButton());
+    addAndMakeVisible(m_latencyToggle.get());
 
-    m_latencyLabel.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 10.5f, juce::Font::bold));
-    m_latencyLabel.setColour(juce::Label::textColourId, FreePitchLookAndFeel::kTextMuted);
-    m_latencyLabel.setJustificationType(juce::Justification::centredRight);
-    addAndMakeVisible(m_latencyLabel);
+    // Right: Vocal Mode Selector Pill
+    m_vocalModeSelector = std::make_unique<HeaderPillSelector>("VOCAL MODE");
+    m_vocalModeSelector->setTooltip("Vocal Range Mode: Limits pitch tracking search to eliminate octave errors.");
+    for (int i = 0; i < static_cast<int>(VocalMode::NumModes); ++i) {
+        juce::String name = g_vocalModeBounds[i].name;
+        int spaceIdx = name.indexOfChar(' ');
+        if (spaceIdx > 0) name = name.substring(0, spaceIdx);
+        m_vocalModeSelector->getComboBox().addItem(name.toUpperCase(), i + 1);
+    }
+    m_vocalModeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
+        m_processor.getAPVTS(), FreePitchID::vocalMode, m_vocalModeSelector->getComboBox());
+    addAndMakeVisible(m_vocalModeSelector.get());
 
-    // --- Master EFX Toggle ---
-    m_masterEfxToggle.setButtonText("MASTER EFX");
-    m_masterEfxToggle.setTooltip("Master EFX: Master bypass for the entire post-pitch EFX rack.");
+    // Right: Master Bypass Button
+    m_bypassButton = std::make_unique<CircularBypassButton>();
     m_masterEfxAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
-        m_processor.getAPVTS(), FreePitchID::masterEfxActive, m_masterEfxToggle);
-    addAndMakeVisible(m_masterEfxToggle);
+        m_processor.getAPVTS(), FreePitchID::masterEfxActive, m_bypassButton->getButton());
+    addAndMakeVisible(m_bypassButton.get());
 
-    // --- Left Control Bank (Tuning Dynamics) ---
+    // ========================================================================
+    // 2. Main Pitch Engine (Left 30% / Center 40% / Right 30%)
+    // ========================================================================
+    // Left Column: RETUNE SPEED, HUMANIZE, FLEX-TUNE + CHOOSY TRACKING
     if (auto* param = m_processor.getAPVTS().getParameter(FreePitchID::retuneSpeed)) {
         m_retuneSpeedKnob = std::make_unique<RotaryKnob>(*param, "Retune Speed", "ms");
         m_retuneSpeedKnob->setHero(true);
-        m_retuneSpeedKnob->setTooltipText("Retune Speed (0 - 400 ms): Governs how fast FreePitch pulls vocals to the target note.\n- 0 ms: Instant Cher / T-Pain hard snap\n- 15-35 ms: Tight modern pop & trap tuning\n- 60-150 ms: Transparent natural vocal correction.");
+        m_retuneSpeedKnob->setTooltipText("Retune Speed: Correction response time (0 ms = snap, 20-40 ms = modern pop, 80+ ms = natural).");
         m_retuneSpeedAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
             m_processor.getAPVTS(), FreePitchID::retuneSpeed, m_retuneSpeedKnob->getSlider());
         addAndMakeVisible(m_retuneSpeedKnob.get());
     }
+
     if (auto* param = m_processor.getAPVTS().getParameter(FreePitchID::humanize)) {
         m_humanizeKnob = std::make_unique<RotaryKnob>(*param, "Humanize", "%");
-        m_humanizeKnob->setTooltipText("Humanize (0 - 100%): Relaxes pitch correction on sustained steady notes,\nallowing natural singer vibrato and micro-inflections through while correcting transitions.");
+        m_humanizeKnob->setHero(true);
+        m_humanizeKnob->setTooltipText("Humanize: Preserves natural vocal vibrato on sustained notes.");
         m_humanizeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
             m_processor.getAPVTS(), FreePitchID::humanize, m_humanizeKnob->getSlider());
         addAndMakeVisible(m_humanizeKnob.get());
     }
+
     if (auto* param = m_processor.getAPVTS().getParameter(FreePitchID::flexTune)) {
         m_flexTuneKnob = std::make_unique<RotaryKnob>(*param, "Flex-Tune", "%");
-        m_flexTuneKnob->setTooltipText("Flex-Tune (0 - 100%): Elastic dead-band tolerance around target scale notes.\nIntentional vocal scoops and expressive bends near note center remain untouched;\nout-of-tune notes are pulled cleanly into center.");
+        m_flexTuneKnob->setHero(true);
+        m_flexTuneKnob->setTooltipText("Flex-Tune: Elastic dead-band allowing expressive vocal scoops and slides.");
         m_flexTuneAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
             m_processor.getAPVTS(), FreePitchID::flexTune, m_flexTuneKnob->getSlider());
         addAndMakeVisible(m_flexTuneKnob.get());
     }
 
-    // --- Center Focal Point (Pitch Radar HUD) ---
-    addAndMakeVisible(m_circularMeter);
-
-    for (int i = 0; i < static_cast<int>(VocalMode::NumModes); ++i) {
-        m_vocalModeBox.addItem(g_vocalModeBounds[i].name, i + 1);
-    }
-    m_vocalModeBox.setTooltip("Vocal Range Mode: Constrains pitch detection search bounds to eliminate octave-jumping errors.\nSelect the mode matching the singer's vocal register.");
-    m_vocalModeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(
-        m_processor.getAPVTS(), FreePitchID::vocalMode, m_vocalModeBox);
-    addAndMakeVisible(m_vocalModeBox);
-
-    m_choosyTrackingToggle.setButtonText("CHOOSY TRACKING");
-    m_choosyTrackingToggle.setTooltip("Choosy Tracking: Tightens clarity and noise thresholds so breaths, plosives, and sibilants\npass through transparently without unwanted pitch warble.");
+    m_choosyTrackingPill = std::make_unique<NeumorphicTogglePill>(
+        "Choosy Tracking", "Choosy Tracking: Tightens tracking thresholds so unvoiced breaths pass naturally.");
     m_choosyTrackingAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
-        m_processor.getAPVTS(), FreePitchID::choosyTracking, m_choosyTrackingToggle);
-    addAndMakeVisible(m_choosyTrackingToggle);
+        m_processor.getAPVTS(), FreePitchID::choosyTracking, m_choosyTrackingPill->getToggleButton());
+    addAndMakeVisible(m_choosyTrackingPill.get());
 
-    // --- Right Control Bank (Tone & Modular EFX) ---
-    if (auto* param = m_processor.getAPVTS().getParameter(FreePitchID::pitchShift)) {
-        m_pitchShiftKnob = std::make_unique<RotaryKnob>(*param, "Pitch Shift", "st");
-        m_pitchShiftKnob->setAccentAmber(true);
-        m_pitchShiftKnob->setTooltipText("Pitch Shift (-12 to +12 st): Transposes corrected pitch in continuous semitones.");
-        m_pitchShiftAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-            m_processor.getAPVTS(), FreePitchID::pitchShift, m_pitchShiftKnob->getSlider());
-        addAndMakeVisible(m_pitchShiftKnob.get());
-    }
+    // Center Focal Point: Circular Pitch Meter
+    addAndMakeVisible(m_pitchMeter);
 
-    m_formantsTitleLabel.setText("FORMANTS", juce::dontSendNotification);
-    m_formantsTitleLabel.setFont(juce::FontOptions(10.5f, juce::Font::bold));
-    m_formantsTitleLabel.setColour(juce::Label::textColourId, FreePitchLookAndFeel::kTextMuted);
-    m_formantsTitleLabel.setJustificationType(juce::Justification::centred);
-    addAndMakeVisible(m_formantsTitleLabel);
-
-    m_formantsToggle.setButtonText("PRESERVE");
-    m_formantsToggle.setTooltip("Formant Preserve: Locks vocal tract resonant frequencies in place during pitch transposition,\npreventing chipmunk / monster distortion.");
-    m_formantsAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
-        m_processor.getAPVTS(), FreePitchID::formantsOn, m_formantsToggle);
-    addAndMakeVisible(m_formantsToggle);
-
-    m_formantsSubLabel.setText("VOCAL TRACT", juce::dontSendNotification);
-    m_formantsSubLabel.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 8.5f, juce::Font::bold));
-    m_formantsSubLabel.setColour(juce::Label::textColourId, FreePitchLookAndFeel::kTextDim);
-    m_formantsSubLabel.setJustificationType(juce::Justification::centred);
-    addAndMakeVisible(m_formantsSubLabel);
-
+    // Right Column: FORMANT, TRANSPOSE + FORMANT LOCK
     if (auto* param = m_processor.getAPVTS().getParameter(FreePitchID::formantShift)) {
-        m_formantShiftKnob = std::make_unique<RotaryKnob>(*param, "Formant Shift", "st");
-        m_formantShiftKnob->setAccentAmber(true);
-        m_formantShiftKnob->setTooltipText("Formant Shift (-12 to +12 st): Morphs vocal tract resonances independently.\nLower = deeper, darker chest resonance; Higher = brighter, smaller head voice.");
-        m_formantShiftAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
-            m_processor.getAPVTS(), FreePitchID::formantShift, m_formantShiftKnob->getSlider());
-        addAndMakeVisible(m_formantShiftKnob.get());
+        m_formantKnob = std::make_unique<RotaryKnob>(*param, "Formant", "st");
+        m_formantKnob->setHero(true);
+        m_formantKnob->setTooltipText("Formant: Morphs vocal tract resonances independently (-12 to +12 st).");
+        m_formantAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+            m_processor.getAPVTS(), FreePitchID::formantShift, m_formantKnob->getSlider());
+        addAndMakeVisible(m_formantKnob.get());
     }
 
-    // Modular Post-Pitch EFX Rack Bay
-    addAndMakeVisible(m_efxDrawer);
+    if (auto* param = m_processor.getAPVTS().getParameter(FreePitchID::pitchShift)) {
+        m_transposeKnob = std::make_unique<RotaryKnob>(*param, "Transpose", "st");
+        m_transposeKnob->setHero(true);
+        m_transposeKnob->setTooltipText("Transpose: Transposes corrected pitch in semitones (-12 to +12 st).");
+        m_transposeAttachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(
+            m_processor.getAPVTS(), FreePitchID::pitchShift, m_transposeKnob->getSlider());
+        addAndMakeVisible(m_transposeKnob.get());
+    }
 
-    // --- Bottom Piano Keyboard ---
+    m_formantLockPill = std::make_unique<NeumorphicTogglePill>(
+        "Formant Lock", "Formant Lock: Preserves natural vocal resonances during pitch transposition.");
+    m_formantsAttachment = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(
+        m_processor.getAPVTS(), FreePitchID::formantsOn, m_formantLockPill->getToggleButton());
+    addAndMakeVisible(m_formantLockPill.get());
+
+    // ========================================================================
+    // 3. Modular Post-Pitch EFX Rack
+    // ========================================================================
+    addAndMakeVisible(m_efxRack);
+
+    // ========================================================================
+    // 4. Interactive Piano Keyboard
+    // ========================================================================
     addAndMakeVisible(m_pianoKeyboard);
     m_pianoKeyboard.onCustomMaskChanged = [this](uint32_t newMask) {
         m_processor.setCustomScaleMask(newMask);
     };
 
-    setSize(1080, 680);
+    // ========================================================================
+    // Window Architecture & Scaling (1120 x 630 default, 16:9 Aspect Ratio)
+    // ========================================================================
+    setSize(1120, 630);
     setResizable(true, true);
-    setResizeLimits(920, 580, 1600, 1050);
+    setResizeLimits(920, 518, 1920, 1080);
+    getConstrainer()->setFixedAspectRatio(1120.0 / 630.0);
 
-    updateThemeUI();
-    startTimerHz(60); // 60 FPS Visual Telemetry
+    startTimerHz(60); // 60 FPS visual telemetry
 }
 
 FreePitchAudioProcessorEditor::~FreePitchAudioProcessorEditor() {
@@ -216,255 +195,145 @@ FreePitchAudioProcessorEditor::~FreePitchAudioProcessorEditor() {
     juce::LookAndFeel::setDefaultLookAndFeel(nullptr);
 }
 
-void FreePitchAudioProcessorEditor::updateThemeUI() {
-    const auto& p = FreePitchLookAndFeel::getPalette();
-    bool isDark = m_lookAndFeel.isDarkTheme();
-
-    m_themeToggleBtn.setButtonText(isDark ? "DARK" : "LIGHT");
-    m_titleLabel.setColour(juce::Label::textColourId, p.textPrimary);
-    m_subtitleLabel.setColour(juce::Label::textColourId, p.accentCyan);
-    m_versionLabel.setColour(juce::Label::textColourId, p.textDim);
-    m_latencyLabel.setColour(juce::Label::textColourId, p.textMuted);
-    m_formantsTitleLabel.setColour(juce::Label::textColourId, p.textMuted);
-    m_formantsSubLabel.setColour(juce::Label::textColourId, p.textDim);
-
-    if (m_retuneSpeedKnob)  m_retuneSpeedKnob->updateThemeColors();
-    if (m_humanizeKnob)     m_humanizeKnob->updateThemeColors();
-    if (m_flexTuneKnob)     m_flexTuneKnob->updateThemeColors();
-    if (m_pitchShiftKnob)   m_pitchShiftKnob->updateThemeColors();
-    if (m_formantShiftKnob) m_formantShiftKnob->updateThemeColors();
-
-    m_efxDrawer.updateThemeColors();
-    m_circularMeter.repaint();
-    m_pianoKeyboard.repaint();
-    repaint();
-}
-
 void FreePitchAudioProcessorEditor::updatePresetBox() {
-    m_presetBox.clear(juce::dontSendNotification);
+    auto& box = m_presetSelector->getComboBox();
+    box.clear(juce::dontSendNotification);
     int num = m_processor.getPresetManager().getNumPresets();
     for (int i = 0; i < num; ++i) {
-        m_presetBox.addItem(m_processor.getPresetManager().getPresetName(i), i + 1);
+        box.addItem(m_processor.getPresetManager().getPresetName(i), i + 1);
     }
-    m_presetBox.setSelectedId(m_processor.getPresetManager().getCurrentPresetIndex() + 1, juce::dontSendNotification);
+    box.setSelectedId(m_processor.getPresetManager().getCurrentPresetIndex() + 1, juce::dontSendNotification);
 }
 
 void FreePitchAudioProcessorEditor::timerCallback() {
     auto telemetry = m_processor.getLatestTelemetry();
 
-    // 1. Update Central Pitch Radar
-    m_circularMeter.updateTelemetry(telemetry);
+    // 1. Update Center Pitch Radar HUD
+    m_pitchMeter.updateTelemetry(telemetry);
 
-    // 2. Update EFX Telemetry
-    m_efxDrawer.updateTelemetry(telemetry);
+    // 2. Update EFX Rack Telemetry
+    m_efxRack.updateTelemetry(telemetry);
 
-    // 3. Update Bottom Piano Keyboard
-    int vocalModeIdx = m_vocalModeBox.getSelectedId() - 1;
-    if (vocalModeIdx < 0) vocalModeIdx = 3;
+    // 3. Update Piano Keyboard
+    int vocalModeIdx = m_vocalModeSelector->getComboBox().getSelectedId() - 1;
+    if (vocalModeIdx < 0) vocalModeIdx = 3; // Tenor default
     m_pianoKeyboard.setVocalMode(static_cast<VocalMode>(vocalModeIdx));
 
-    int root = m_keyRootBox.getSelectedId() - 1;
-    int scale = m_scaleTypeBox.getSelectedId() - 1;
-    m_pianoKeyboard.setScale(root >= 0 ? root : 0,
-                             scale >= 0 ? static_cast<ScaleType>(scale) : ScaleType::Chromatic,
-                             telemetry.customScaleMask);
+    auto* keyParam = dynamic_cast<juce::AudioParameterChoice*>(m_processor.getAPVTS().getParameter(FreePitchID::keyRoot));
+    auto* scaleParam = dynamic_cast<juce::AudioParameterChoice*>(m_processor.getAPVTS().getParameter(FreePitchID::scaleType));
+    int root = keyParam ? keyParam->getIndex() : 0;
+    int scale = scaleParam ? scaleParam->getIndex() : 0;
 
+    m_pianoKeyboard.setScale(root, static_cast<ScaleType>(scale), telemetry.customScaleMask);
     m_pianoKeyboard.updateLiveNotes(telemetry.detectedMidi, telemetry.targetMidi, telemetry.isVoiced);
-
-    // 4. Update Host PDC Latency Readout
-    int latencySamples = m_processor.getLatencySamples();
-    float latencyMs = (static_cast<float>(latencySamples) / static_cast<float>(m_processor.getSampleRate())) * 1000.0f;
-    juce::String latText = "LATENCY: " + juce::String(latencyMs, 1) + " ms (" + juce::String(latencySamples) + " smp)";
-    m_latencyLabel.setText(latText, juce::dontSendNotification);
-
-    // 5. Smooth Confidence / Gate Telemetry
-    m_smoothConfidence += 0.25f * (telemetry.voicedConfidence - m_smoothConfidence);
-    m_smoothInputRms += 0.25f * (telemetry.inputRmsDb - m_smoothInputRms);
-
-    repaint();
 }
 
 void FreePitchAudioProcessorEditor::paint(juce::Graphics& g) {
+    using namespace FreePitchColors;
     auto bounds = getLocalBounds().toFloat();
-    const auto& p = FreePitchLookAndFeel::getPalette();
 
-    // 1. Studio Chassis Base Surface
-    g.fillAll(p.bgBase);
+    // 1. Studio Chassis Background (#16181C)
+    g.fillAll(bgChassis);
 
-    // 2. Top Bar Panel (Skeuomorphic Sunken Bay)
-    auto topBarArea = bounds.removeFromTop(50.0f);
-    FreePitchLookAndFeel::drawNeumorphicSunken(g, topBarArea, 0.0f, 2.0f);
+    // 2. Top Header Bar Area
+    float headerH = bounds.getHeight() * 0.10f;
+    auto headerArea = bounds.removeFromTop(headerH);
 
-    // Cyan branding dot beside title
-    g.setColour(p.accentCyan);
-    g.fillEllipse(14.0f, 16.0f, 6.0f, 6.0f);
-    g.setColour(p.accentCyanGlow);
-    g.fillEllipse(12.0f, 14.0f, 10.0f, 10.0f);
+    // Subtle 1px separation hairline under header
+    g.setColour(rimHighlight.withAlpha(0.40f));
+    g.drawLine(0.0f, headerArea.getBottom(), bounds.getWidth(), headerArea.getBottom(), 1.0f);
 
-    // 3. Responsive Proportional Grid
-    float bottomPianoHeight = std::clamp(bounds.getHeight() * 0.135f, 76.0f, 120.0f);
-    auto contentArea = bounds.removeFromTop(bounds.getHeight() - bottomPianoHeight);
-
-    float totalW = contentArea.getWidth();
-    float leftWidth = std::clamp(totalW * 0.22f, 210.0f, 290.0f);
-    float rightWidth = std::clamp(totalW * 0.46f, 450.0f, 740.0f);
-
-    // Left Bank Panel (Tuning Dynamics): Neumorphic Raised Card
-    auto leftPanel = contentArea.removeFromLeft(leftWidth).reduced(6.0f, 6.0f);
-    FreePitchLookAndFeel::drawNeumorphicRaised(g, leftPanel, 10.0f, 4.0f);
-
-    // Right Bank Panel (Voice Tone & Modular EFX): Neumorphic Raised Card
-    auto rightPanel = contentArea.removeFromRight(rightWidth).reduced(6.0f, 6.0f);
-    FreePitchLookAndFeel::drawNeumorphicRaised(g, rightPanel, 10.0f, 4.0f);
-
-    // Center Focal Zone Panel (Pitch Radar & Scale Quantizer): Neumorphic Raised Card
-    auto centerPanel = contentArea.reduced(6.0f, 6.0f);
-    FreePitchLookAndFeel::drawNeumorphicRaised(g, centerPanel, 10.0f, 4.0f);
-
-    // Section Header Badges
-    auto drawHeader = [&](const juce::String& text, juce::Rectangle<float> panel, const juce::Colour& dotCol) {
-        // Tactile hardware LED pip
-        FreePitchLookAndFeel::drawTactileLed(g, panel.getX() + 16.0f, panel.getY() + 14.0f, 2.5f, dotCol, true);
-
-        // Header Typography
-        g.setFont(juce::FontOptions(10.5f, juce::Font::bold));
-        g.setColour(p.textSecondary);
-        g.drawText(text, juce::Rectangle<float>(panel.getX() + 26.0f, panel.getY() + 6.0f, panel.getWidth() - 36.0f, 16.0f),
-                   juce::Justification::centredLeft);
-    };
-
-    drawHeader("TUNING DYNAMICS", leftPanel, p.accentCyan);
-    drawHeader("PITCH RADAR & SCALE QUANTIZER", centerPanel, p.accentAmber);
-    drawHeader("VOICE TONE & MODULAR EFX", rightPanel, p.accentCyan);
-
-    // Live Confidence / Voiced Gate Bar in Center Panel
-    if (!m_confidenceMeterBounds.isEmpty()) {
-        float cx = m_confidenceMeterBounds.getX();
-        float cy = m_confidenceMeterBounds.getY();
-        float cw = m_confidenceMeterBounds.getWidth();
-        float ch = m_confidenceMeterBounds.getHeight();
-
-        // Neumorphic Sunken Well
-        FreePitchLookAndFeel::drawNeumorphicSunken(g, m_confidenceMeterBounds, 5.0f, 2.0f);
-
-        float confFrac = std::clamp(m_smoothConfidence, 0.0f, 1.0f);
-        if (confFrac > 0.02f) {
-            auto fillRect = juce::Rectangle<float>(cx + 1.0f, cy + 1.0f, (cw - 2.0f) * confFrac, ch - 2.0f);
-            juce::Colour fillCol = (confFrac >= 0.58f) ? p.indicatorInTune : p.indicatorSharp;
-            g.setColour(fillCol.withAlpha(0.85f));
-            g.fillRoundedRectangle(fillRect, 4.0f);
-        }
-
-        // Percentage readout
-        int pct = static_cast<int>(std::round(confFrac * 100.0f));
-        g.setFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), 9.0f, juce::Font::bold));
-        g.setColour(p.textPrimary);
-        juce::String txt = (confFrac >= 0.58f ? "GATE: VOICED " : "GATE: UNVOICED ") + juce::String(pct) + "%";
-        g.drawText(txt, static_cast<int>(cx), static_cast<int>(cy), static_cast<int>(cw), static_cast<int>(ch),
-                   juce::Justification::centred);
+    // VST3 badge rounded border
+    if (m_vst3Badge.isVisible()) {
+        auto badgeBounds = m_vst3Badge.getBounds().toFloat();
+        g.setColour(cavityRecessed);
+        g.fillRoundedRectangle(badgeBounds, 4.0f);
+        g.setColour(rimHighlight.withAlpha(0.6f));
+        g.drawRoundedRectangle(badgeBounds.reduced(0.5f), 4.0f, 1.0f);
     }
 }
 
 void FreePitchAudioProcessorEditor::resized() {
     auto bounds = getLocalBounds();
+    if (bounds.isEmpty()) return;
 
     int totalW = bounds.getWidth();
-    int leftW = std::clamp(static_cast<int>(totalW * 0.22f), 210, 290);
-    int rightW = std::clamp(static_cast<int>(totalW * 0.46f), 450, 740);
+    int totalH = bounds.getHeight();
 
-    // 1. Top Header Bar (50px)
-    auto topBar = bounds.removeFromTop(50).reduced(8, 6);
+    // ========================================================================
+    // 1. Top Header Bar (~10% height: ~63px at 630h)
+    // ========================================================================
+    int headerH = static_cast<int>(totalH * 0.10f);
+    auto headerArea = bounds.removeFromTop(headerH).reduced(16, 8);
 
-    // Left Zone (width = leftW - 8): Logo, Subtitle, Version, Theme Toggle Button
-    auto leftTopArea = topBar.removeFromLeft(leftW - 8);
-    int logoW = std::clamp(leftTopArea.getWidth() - 96, 85, 130);
-    auto logoArea = leftTopArea.removeFromLeft(logoW);
-    m_titleLabel.setBounds(logoArea.removeFromTop(20).withTrimmedLeft(18));
-    m_subtitleLabel.setBounds(logoArea.withTrimmedLeft(18));
-    m_versionLabel.setBounds(leftTopArea.removeFromLeft(34).reduced(1, 4));
-    m_themeToggleBtn.setBounds(leftTopArea.reduced(2, 4));
+    // Left: Wordmark & VST3 Badge
+    int titleW = 125;
+    m_titleLabel.setBounds(headerArea.removeFromLeft(titleW).withTrimmedBottom(4));
+    m_vst3Badge.setBounds(headerArea.removeFromLeft(38).reduced(0, 8));
 
-    // Right Zone (width = rightW - 8): Key, Scale, Lookahead, Latency, Master EFX
-    auto rightTopArea = topBar.removeFromRight(rightW - 8);
-    m_masterEfxToggle.setBounds(rightTopArea.removeFromRight(std::min(95, rightTopArea.getWidth() / 5)).reduced(2, 2));
-    m_latencyLabel.setBounds(rightTopArea.removeFromRight(std::min(130, rightTopArea.getWidth() / 4)).reduced(2, 2));
-    m_lookaheadToggle.setBounds(rightTopArea.removeFromRight(std::min(92, rightTopArea.getWidth() / 3)).reduced(2, 2));
-    m_scaleTypeBox.setBounds(rightTopArea.removeFromRight(std::min(115, rightTopArea.getWidth() / 2)).reduced(2, 3));
-    m_keyRootBox.setBounds(rightTopArea.reduced(2, 3));
+    // Right side: Master Bypass Button, Vocal Mode Selector, Latency Toggle
+    int bypassSize = std::clamp(headerArea.getHeight(), 26, 36);
+    m_bypassButton->setBounds(headerArea.removeFromRight(bypassSize).reduced(0, 1));
+    headerArea.removeFromRight(14); // gutter
 
-    // Center Zone (Preset Controls): Center-aligned in whatever remains
-    auto centerTopArea = topBar;
-    int presetStripW = std::min(centerTopArea.getWidth() - 8, 290);
-    int presetStartX = centerTopArea.getX() + (centerTopArea.getWidth() - presetStripW) / 2;
-    auto presetStrip = juce::Rectangle<int>(presetStartX, centerTopArea.getY(), presetStripW, centerTopArea.getHeight());
+    int vocalW = std::clamp(totalW / 9, 90, 115);
+    m_vocalModeSelector->setBounds(headerArea.removeFromRight(vocalW));
+    headerArea.removeFromRight(14); // gutter
 
-    m_prevPresetBtn.setBounds(presetStrip.removeFromLeft(22).reduced(0, 3));
-    m_nextPresetBtn.setBounds(presetStrip.removeFromRight(22).reduced(0, 3));
-    m_abCompareBtn.setBounds(presetStrip.removeFromRight(46).reduced(2, 3));
-    m_savePresetBtn.setBounds(presetStrip.removeFromRight(46).reduced(2, 3));
-    m_presetBox.setBounds(presetStrip.reduced(2, 3));
+    int latencyW = std::clamp(totalW / 8, 120, 150);
+    m_latencyToggle->setBounds(headerArea.removeFromRight(latencyW));
+    headerArea.removeFromRight(20); // gutter
 
-    // 2. Bottom Piano Keyboard (Responsive Height: ~13.5% of window height)
-    int pianoH = std::clamp(static_cast<int>(bounds.getHeight() * 0.135f), 76, 120);
+    // Center: Preset Selector Pill and Key/Scale Selector Pill
+    int centerAvailW = headerArea.getWidth();
+    int pillW = std::clamp(centerAvailW / 2 - 12, 100, 160);
+    int centerStartX = headerArea.getX() + (centerAvailW - (pillW * 2 + 16)) / 2;
+
+    m_presetSelector->setBounds(centerStartX, headerArea.getY(), pillW, headerArea.getHeight());
+    m_keyScaleSelector->setBounds(centerStartX + pillW + 16, headerArea.getY(), pillW, headerArea.getHeight());
+
+    // ========================================================================
+    // 4. Bottom Piano Keyboard (~18% height: ~114px at 630h)
+    // ========================================================================
+    int pianoH = static_cast<int>(totalH * 0.18f);
     m_pianoKeyboard.setBounds(bounds.removeFromBottom(pianoH));
 
-    // 3. Main 3-Column Content Zone
-    auto contentArea = bounds;
-    auto leftArea = contentArea.removeFromLeft(leftW).reduced(10, 10);
-    leftArea.removeFromTop(26); // Header title margin
+    // ========================================================================
+    // 3. Modular Post-Pitch EFX Rack (~24% height: ~151px at 630h)
+    // ========================================================================
+    int rackH = static_cast<int>(totalH * 0.24f);
+    m_efxRack.setBounds(bounds.removeFromBottom(rackH).reduced(16, 4));
 
-    // Left Knobs (Hero Retune Speed on top, Humanize, Flex-Tune)
-    int heroHeight = static_cast<int>(leftArea.getHeight() * 0.42f);
-    if (m_retuneSpeedKnob) m_retuneSpeedKnob->setBounds(leftArea.removeFromTop(heroHeight));
+    // ========================================================================
+    // 2. Main Pitch Engine (~48% height: ~302px at 630h) - 30% / 40% / 30% Split
+    // ========================================================================
+    auto engineArea = bounds.reduced(16, 8);
 
-    int medHeight = leftArea.getHeight() / 2;
-    if (m_humanizeKnob) m_humanizeKnob->setBounds(leftArea.removeFromTop(medHeight));
-    if (m_flexTuneKnob) m_flexTuneKnob->setBounds(leftArea);
+    int colLeftW = static_cast<int>(engineArea.getWidth() * 0.30f);
+    int colRightW = static_cast<int>(engineArea.getWidth() * 0.30f);
 
-    // Right Area (Tone Knobs + Modular EFX Rack)
-    auto rightArea = contentArea.removeFromRight(rightW).reduced(10, 10);
-    rightArea.removeFromTop(26); // Header title margin
+    auto leftArea = engineArea.removeFromLeft(colLeftW).reduced(8, 6);
+    auto rightArea = engineArea.removeFromRight(colRightW).reduced(8, 6);
+    auto centerArea = engineArea.reduced(8, 4);
 
-    // Top Tone Row (Pitch Shift, Preserve Toggle, Formant Shift)
-    int toneRowH = std::clamp(static_cast<int>(rightArea.getHeight() * 0.24f), 86, 120);
-    auto toneRow = rightArea.removeFromTop(toneRowH);
-    int toneKnobWidth = toneRow.getWidth() / 3;
+    // Left Column: Row of 3 primary knobs + Choosy Tracking pill below
+    int pillHeight = 36;
+    auto leftBottom = leftArea.removeFromBottom(pillHeight);
+    m_choosyTrackingPill->setBounds(leftBottom.getCentreX() - 40, leftBottom.getY(), 80, pillHeight);
 
-    if (m_pitchShiftKnob) m_pitchShiftKnob->setBounds(toneRow.removeFromLeft(toneKnobWidth));
+    int leftKnobW = leftArea.getWidth() / 3;
+    if (m_retuneSpeedKnob) m_retuneSpeedKnob->setBounds(leftArea.getX(), leftArea.getY(), leftKnobW, leftArea.getHeight());
+    if (m_humanizeKnob)    m_humanizeKnob->setBounds(leftArea.getX() + leftKnobW, leftArea.getY(), leftKnobW, leftArea.getHeight());
+    if (m_flexTuneKnob)    m_flexTuneKnob->setBounds(leftArea.getX() + leftKnobW * 2, leftArea.getY(), leftKnobW, leftArea.getHeight());
 
-    auto formantsCenter = toneRow.removeFromLeft(toneKnobWidth);
-    int fLabelH = 15;
-    int fToggleH = 26;
-    int fSubH = 14;
-    int fTotal = fLabelH + fToggleH + fSubH + 4;
-    int fStartY = std::max(0, (formantsCenter.getHeight() - fTotal) / 2);
-    m_formantsTitleLabel.setBounds(formantsCenter.getX(), formantsCenter.getY() + fStartY, formantsCenter.getWidth(), fLabelH);
+    // Center Focal Point: Circular Pitch Meter
+    m_pitchMeter.setBounds(centerArea);
 
-    int toggleW = std::min(96, formantsCenter.getWidth() - 8);
-    int toggleX = formantsCenter.getX() + (formantsCenter.getWidth() - toggleW) / 2;
-    m_formantsToggle.setBounds(toggleX, formantsCenter.getY() + fStartY + fLabelH + 2, toggleW, fToggleH);
+    // Right Column: Row of 2 secondary knobs + Formant Lock pill below
+    auto rightBottom = rightArea.removeFromBottom(pillHeight);
+    m_formantLockPill->setBounds(rightBottom.getCentreX() - 40, rightBottom.getY(), 80, pillHeight);
 
-    m_formantsSubLabel.setBounds(formantsCenter.getX(), formantsCenter.getY() + fStartY + fLabelH + fToggleH + 4, formantsCenter.getWidth(), fSubH);
-
-    if (m_formantShiftKnob) m_formantShiftKnob->setBounds(toneRow);
-
-    // Modular EFX Rack Bay takes the remaining right area
-    rightArea.removeFromTop(6);
-    m_efxDrawer.setBounds(rightArea);
-
-    // Center Area (Pitch Radar HUD + Vocal Mode + Tracking)
-    auto centerArea = contentArea.reduced(10, 10);
-    centerArea.removeFromTop(26); // Header title margin
-
-    // Bottom controls in center area
-    auto centerBottom = centerArea.removeFromBottom(70);
-    auto vocalRow = centerBottom.removeFromTop(28);
-    m_vocalModeBox.setBounds(vocalRow.removeFromLeft(vocalRow.getWidth() / 2).reduced(4, 1));
-    m_choosyTrackingToggle.setBounds(vocalRow.reduced(4, 1));
-
-    centerBottom.removeFromTop(4);
-    m_confidenceMeterBounds = centerBottom.removeFromTop(16).toFloat().reduced(6.0f, 0.0f);
-
-    // Pitch Radar HUD fills remaining center area
-    m_circularMeter.setBounds(centerArea.reduced(4));
+    int rightKnobW = rightArea.getWidth() / 2;
+    if (m_formantKnob)   m_formantKnob->setBounds(rightArea.getX(), rightArea.getY(), rightKnobW, rightArea.getHeight());
+    if (m_transposeKnob) m_transposeKnob->setBounds(rightArea.getX() + rightKnobW, rightArea.getY(), rightKnobW, rightArea.getHeight());
 }

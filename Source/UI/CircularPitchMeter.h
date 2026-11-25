@@ -23,7 +23,13 @@ private:
     float m_smoothConfidence = 0.0f;
     float m_smoothFrequency = 0.0f;
 
+    // Pre-rendered static dish and dial ticks cache
+    juce::Image m_cachedMeterBase;
+
+    void renderCachedMeterBase();
     static juce::String midiToNoteName(int midiNote);
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(CircularPitchMeter)
 };
+
+using PitchMeterComponent = CircularPitchMeter;

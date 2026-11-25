@@ -1,192 +1,169 @@
 #include "FreePitchLookAndFeel.h"
 #include <cmath>
 
-FreePitchLookAndFeel::ThemePalette FreePitchLookAndFeel::makeDarkPalette() {
-    ThemePalette p;
-    p.bgBase            = juce::Colour(0xFF181B20); // Neutral dark slate chassis
-    p.panelRaised       = juce::Colour(0xFF1E2229); // Extruded neumorphic card surface
-    p.panelSunken       = juce::Colour(0xFF131519); // Concave dish / inset well
-    p.panelBorder       = juce::Colour(0xFF242A34); // Soft perimeter hairline
-    p.panelBorderLight  = juce::Colour(0xFF2E3542); // Soft top-left specular hairline
-    p.shadowDark        = juce::Colour(0x990A0C0E); // Diffuse ambient drop shadow
-    p.shadowLight       = juce::Colour(0x2E404D60); // Soft ambient highlight shadow
-    p.innerShadowDark   = juce::Colour(0xCC08090C); // Recessed cavity dark shadow
-    p.innerShadowLight  = juce::Colour(0x26374456); // Inset cavity specular rim
-
-    p.textPrimary       = juce::Colour(0xFFF8FAFC); // Crisp off-white
-    p.textSecondary     = juce::Colour(0xFF94A3B8); // Clean slate
-    p.textMuted         = juce::Colour(0xFF64748B); // Technical grey
-    p.textDim           = juce::Colour(0xFF475569); // Muted inactive
-
-    p.accentCyan        = juce::Colour(0xFF00E5FF); // Radiant electric cyan
-    p.accentCyanGlow    = juce::Colour(0x4000E5FF);
-    p.accentAmber       = juce::Colour(0xFFFFB300); // Warm studio amber gold
-    p.accentAmberGlow   = juce::Colour(0x40FFB300);
-    p.indicatorInTune   = juce::Colour(0xFF00E676); // Emerald phosphor LED
-    p.indicatorSharp    = juce::Colour(0xFFFB923C);
-    p.indicatorFlat     = juce::Colour(0xFF38BDF8);
-    p.indicatorWarning  = juce::Colour(0xFFEF4444);
-
-    return p;
-}
-
-FreePitchLookAndFeel::ThemePalette FreePitchLookAndFeel::makeLightPalette() {
-    ThemePalette p;
-    p.bgBase            = juce::Colour(0xFFE0E5EC); // Iconic uiverse neumorphic silver cream
-    p.panelRaised       = juce::Colour(0xFFE0E5EC); // Same matte material!
-    p.panelSunken       = juce::Colour(0xFFD2D8E2); // Concave dish / inset well
-    p.panelBorder       = juce::Colour(0xFFBAC3CF); // Soft perimeter hairline
-    p.panelBorderLight  = juce::Colour(0xFFFFFFFF); // Specular top-left hairline
-    p.shadowDark        = juce::Colour(0x77A3B1C6); // Soft ambient drop shadow
-    p.shadowLight       = juce::Colour(0xEEFFFFFF); // Pure white specular highlight shadow
-    p.innerShadowDark   = juce::Colour(0x6697A6BB); // Recessed cavity dark shadow
-    p.innerShadowLight  = juce::Colour(0xEEFFFFFF); // Inset cavity specular rim
-
-    p.textPrimary       = juce::Colour(0xFF1E293B); // Deep charcoal
-    p.textSecondary     = juce::Colour(0xFF475569); // Slate
-    p.textMuted         = juce::Colour(0xFF64748B); // Muted neutral
-    p.textDim           = juce::Colour(0xFF94A3B8); // Soft grey
-
-    p.accentCyan        = juce::Colour(0xFF0284C7); // Vivid sapphire cyan
-    p.accentCyanGlow    = juce::Colour(0x330284C7);
-    p.accentAmber       = juce::Colour(0xFFD97706); // Warm studio amber bronze
-    p.accentAmberGlow   = juce::Colour(0x33D97706);
-    p.indicatorInTune   = juce::Colour(0xFF059669); // Studio emerald
-    p.indicatorSharp    = juce::Colour(0xFFEA580C);
-    p.indicatorFlat     = juce::Colour(0xFF0284C7);
-    p.indicatorWarning  = juce::Colour(0xFFDC2626);
-
-    return p;
-}
-
 FreePitchLookAndFeel::FreePitchLookAndFeel() {
     setThemeMode(ThemeMode::Dark);
 }
 
 void FreePitchLookAndFeel::setThemeMode(ThemeMode mode) {
     m_themeMode = mode;
-    s_themeMode = mode;
-    s_currentPalette = (mode == ThemeMode::Dark) ? makeDarkPalette() : makeLightPalette();
-    applyPaletteToColours();
-}
 
-void FreePitchLookAndFeel::applyPaletteToColours() {
-    const auto& p = s_currentPalette;
-
-    // Update static backward-compatible aliases
-    kBackgroundDark   = p.bgBase;
-    kPanelDark        = p.panelSunken;
-    kPanelCard        = p.panelRaised;
-    kPanelCardHover   = (s_themeMode == ThemeMode::Dark) ? p.panelRaised.brighter(0.05f) : p.panelRaised.darker(0.03f);
-    kPanelBorder      = p.panelBorder;
-    kPanelBorderLight = p.panelBorderLight;
-    kPanelBorderGlow  = p.accentCyanGlow;
-
-    kTextWhite        = p.textPrimary;
-    kTextLight        = p.textSecondary;
-    kTextMuted        = p.textMuted;
-    kTextDim          = p.textDim;
-
-    kAccentCyan       = p.accentCyan;
-    kAccentCyanGlow   = p.accentCyanGlow;
-    kAccentAmber      = p.accentAmber;
-    kAccentAmberGlow  = p.accentAmberGlow;
-    kIndicatorInTune  = p.indicatorInTune;
-    kIndicatorSharp   = p.indicatorSharp;
-    kIndicatorFlat    = p.indicatorFlat;
-    kIndicatorWarning = p.indicatorWarning;
-
-    kKnobBodyTop      = p.panelRaised;
-    kKnobBodyBottom   = p.panelSunken;
-    kKnobRim          = p.panelBorder;
-
-    // JUCE Component standard colours
-    setColour(juce::ResizableWindow::backgroundColourId, p.bgBase);
-    setColour(juce::PopupMenu::backgroundColourId, p.panelRaised);
-    setColour(juce::PopupMenu::textColourId, p.textPrimary);
-    setColour(juce::PopupMenu::highlightedBackgroundColourId, (s_themeMode == ThemeMode::Dark) ? p.panelRaised.brighter(0.08f) : p.panelSunken);
-    setColour(juce::PopupMenu::highlightedTextColourId, p.accentCyan);
-    setColour(juce::TextButton::textColourOffId, p.textSecondary);
-    setColour(juce::TextButton::textColourOnId, p.accentAmber);
-    setColour(juce::TooltipWindow::backgroundColourId, p.panelSunken);
-    setColour(juce::TooltipWindow::textColourId, p.textPrimary);
-    setColour(juce::TooltipWindow::outlineColourId, p.panelBorderLight);
+    setColour(juce::ResizableWindow::backgroundColourId, FreePitchColors::bgChassis);
+    setColour(juce::PopupMenu::backgroundColourId, FreePitchColors::surfaceElevated);
+    setColour(juce::PopupMenu::textColourId, FreePitchColors::textPrimary);
+    setColour(juce::PopupMenu::highlightedBackgroundColourId, FreePitchColors::cavityRecessed);
+    setColour(juce::PopupMenu::highlightedTextColourId, FreePitchColors::signalRed);
+    setColour(juce::TextButton::textColourOffId, FreePitchColors::textSecondary);
+    setColour(juce::TextButton::textColourOnId, FreePitchColors::textPrimary);
+    setColour(juce::TooltipWindow::backgroundColourId, FreePitchColors::cavityRecessed);
+    setColour(juce::TooltipWindow::textColourId, FreePitchColors::textPrimary);
+    setColour(juce::TooltipWindow::outlineColourId, FreePitchColors::rimHighlight);
 }
 
 void FreePitchLookAndFeel::drawNeumorphicRaised(juce::Graphics& g, juce::Rectangle<float> bounds,
-                                                float cornerRadius, float depth, bool isHovered) {
-    const auto& p = s_currentPalette;
-    float off = depth * 0.7f;
+                                                float cornerRadius, float depth,
+                                                bool isHovered, bool isPressed) {
+    using namespace FreePitchColors;
 
-    // 1. Soft specular highlight on top-left (-x, -y)
-    g.setColour(p.shadowLight);
-    g.fillRoundedRectangle(bounds.translated(-off, -off), cornerRadius);
+    if (isPressed) {
+        drawNeumorphicSunken(g, bounds, cornerRadius, depth * 0.75f);
+        return;
+    }
 
-    // 2. Soft ambient drop shadow on bottom-right (+x, +y)
-    g.setColour(p.shadowDark);
+    float off = depth * 0.75f;
+
+    // 1. Dual opposing shadows
+    // Top-left subtle cool rim highlight (-offset)
+    g.setColour(rimHighlight.withAlpha(0.45f));
+    g.fillRoundedRectangle(bounds.translated(-off * 0.75f, -off * 0.75f), cornerRadius);
+
+    // Bottom-right deep drop shadow (+offset)
+    g.setColour(deepShadow.withAlpha(0.90f));
     g.fillRoundedRectangle(bounds.translated(off, off), cornerRadius);
 
-    // 3. Extruded surface face (Mono-material)
-    g.setColour(isHovered ? p.panelRaised.brighter(0.03f) : p.panelRaised);
+    // 2. Tactile extruded surface face (Top-left-to-bottom-right gradient: #22262D -> #191C21)
+    juce::Colour topCol = isHovered ? surfaceGradTop.brighter(0.04f) : surfaceGradTop;
+    juce::Colour botCol = isHovered ? surfaceGradBot.brighter(0.03f) : surfaceGradBot;
+    juce::ColourGradient grad(topCol, bounds.getX(), bounds.getY(),
+                              botCol, bounds.getRight(), bounds.getBottom(), false);
+    g.setGradientFill(grad);
     g.fillRoundedRectangle(bounds, cornerRadius);
 
-    // 4. Subtle 3D chamfer hairline rim (light on top-left, darker on bottom-right)
-    juce::ColourGradient borderGrad(p.panelBorderLight, bounds.getX(), bounds.getY(),
-                                    p.panelBorder, bounds.getRight(), bounds.getBottom(), false);
-    g.setGradientFill(borderGrad);
+    // 3. Subtle 3D chamfer rim hairline (rimHighlight at top-left, deepShadow at bottom-right)
+    juce::ColourGradient rimGrad(rimHighlight.withAlpha(0.70f), bounds.getX(), bounds.getY(),
+                                 deepShadow.withAlpha(0.85f), bounds.getRight(), bounds.getBottom(), false);
+    g.setGradientFill(rimGrad);
     g.drawRoundedRectangle(bounds.reduced(0.5f), cornerRadius, 1.0f);
 }
 
 void FreePitchLookAndFeel::drawNeumorphicSunken(juce::Graphics& g, juce::Rectangle<float> bounds,
                                                 float cornerRadius, float depth) {
-    const auto& p = s_currentPalette;
+    using namespace FreePitchColors;
 
-    // 1. Inset well base fill
-    g.setColour(p.panelSunken);
+    // 1. Recessed cavity fill (#101215)
+    g.setColour(cavityRecessed);
     g.fillRoundedRectangle(bounds, cornerRadius);
 
-    // 2. Inner dark shadow from top-left
-    juce::ColourGradient darkGrad(p.innerShadowDark, bounds.getX(), bounds.getY(),
-                                  p.panelSunken, bounds.getX() + depth * 2.0f, bounds.getY() + depth * 2.0f, false);
+    // 2. Inner shadow bevel: #08090B top-left inner stroke
+    juce::ColourGradient darkGrad(innerCavityDark, bounds.getX(), bounds.getY(),
+                                  cavityRecessed, bounds.getX() + depth * 2.0f, bounds.getY() + depth * 2.0f, false);
     g.setGradientFill(darkGrad);
     g.drawRoundedRectangle(bounds.reduced(0.5f), cornerRadius, depth);
 
-    // 3. Inner light specular rim from bottom-right
-    juce::ColourGradient lightGrad(p.panelSunken, bounds.getRight() - depth * 1.5f, bounds.getBottom() - depth * 1.5f,
-                                   p.innerShadowLight, bounds.getRight(), bounds.getBottom(), false);
+    // 3. Inner shadow bevel: 1px #262A33 bottom-right inner rim
+    juce::ColourGradient lightGrad(cavityRecessed, bounds.getRight() - depth * 1.5f, bounds.getBottom() - depth * 1.5f,
+                                   innerCavityRim, bounds.getRight(), bounds.getBottom(), false);
     g.setGradientFill(lightGrad);
     g.drawRoundedRectangle(bounds.reduced(0.5f), cornerRadius, 1.0f);
 }
 
 void FreePitchLookAndFeel::drawTactileLed(juce::Graphics& g, float cx, float cy, float radius,
                                           const juce::Colour& color, bool isOn) {
-    const auto& p = s_currentPalette;
+    using namespace FreePitchColors;
     juce::Rectangle<float> ledBounds(cx - radius, cy - radius, radius * 2.0f, radius * 2.0f);
 
     if (isOn) {
-        // Soft ambient glow
-        g.setColour(color.withAlpha(0.35f));
-        g.fillEllipse(ledBounds.expanded(radius * 0.6f));
+        // Soft outer bloom (0x44FF2E3B)
+        g.setColour(color.withAlpha(0.28f));
+        g.fillEllipse(ledBounds.expanded(radius * 1.2f));
 
-        // Lens body
+        g.setColour(color.withAlpha(0.55f));
+        g.fillEllipse(ledBounds.expanded(radius * 0.5f));
+
+        // Core Signal Red LED (#FF2E3B)
         g.setColour(color);
         g.fillEllipse(ledBounds);
 
-        // Subtle specular highlight hotspot
+        // Crisp specular highlight reflection
         g.setColour(juce::Colours::white.withAlpha(0.85f));
-        g.fillEllipse(cx - radius * 0.4f, cy - radius * 0.4f, radius * 0.6f, radius * 0.6f);
+        g.fillEllipse(cx - radius * 0.35f, cy - radius * 0.35f, radius * 0.55f, radius * 0.55f);
     } else {
-        // Inset dark socket
-        g.setColour(p.panelSunken);
+        // Inactive dark socket
+        g.setColour(cavityRecessed);
         g.fillEllipse(ledBounds);
-        g.setColour(p.panelBorder);
+        g.setColour(rimHighlight.withAlpha(0.5f));
         g.drawEllipse(ledBounds, 0.8f);
     }
+}
+
+void FreePitchLookAndFeel::drawMachinedCap(juce::Graphics& g, juce::Rectangle<float> dialBounds,
+                                           float currentAngle, bool isHovered, bool isPressed) {
+    using namespace FreePitchColors;
+    float radius = dialBounds.getWidth() * 0.5f;
+    float centreX = dialBounds.getCentreX();
+    float centreY = dialBounds.getCentreY();
+
+    float off = isPressed ? 1.0f : 2.5f;
+
+    // Dual opposing shadows for the circular knob cap
+    // Top-left rim highlight
+    g.setColour(rimHighlight.withAlpha(0.55f));
+    g.fillEllipse(dialBounds.translated(-off * 0.8f, -off * 0.8f));
+
+    // Bottom-right deep drop shadow
+    g.setColour(deepShadow.withAlpha(0.95f));
+    g.fillEllipse(dialBounds.translated(off * 1.2f, off * 1.2f));
+
+    // Extruded machined circular cap surface (#22262D -> #191C21)
+    juce::Colour topCol = isHovered ? surfaceGradTop.brighter(0.04f) : surfaceGradTop;
+    juce::Colour botCol = isHovered ? surfaceGradBot.brighter(0.03f) : surfaceGradBot;
+    juce::ColourGradient capGrad(topCol, centreX - radius, centreY - radius,
+                                 botCol, centreX + radius, centreY + radius, false);
+    g.setGradientFill(capGrad);
+    g.fillEllipse(dialBounds);
+
+    // Beveled rim hairline
+    juce::ColourGradient rimGrad(rimHighlight, centreX - radius, centreY - radius,
+                                 deepShadow, centreX + radius, centreY + radius, false);
+    g.setGradientFill(rimGrad);
+    g.drawEllipse(dialBounds, 1.0f);
+
+    // Subtle concave center finger dimple
+    float dimpleRadius = radius * 0.32f;
+    juce::Rectangle<float> dimpleBounds(centreX - dimpleRadius, centreY - dimpleRadius,
+                                        dimpleRadius * 2.0f, dimpleRadius * 2.0f);
+    drawNeumorphicSunken(g, dimpleBounds, dimpleRadius, 1.2f);
+
+    // Crisp white radial indicator line pointing along currentAngle
+    float r1 = radius * 0.38f;
+    float r2 = radius * 0.86f;
+    float sinA = std::sin(currentAngle);
+    float cosA = -std::cos(currentAngle);
+
+    float x1 = centreX + sinA * r1;
+    float y1 = centreY + cosA * r1;
+    float x2 = centreX + sinA * r2;
+    float y2 = centreY + cosA * r2;
+
+    float strokeW = std::clamp(radius * 0.10f, 1.6f, 2.5f);
+    g.setColour(textPrimary);
+    g.drawLine(x1, y1, x2, y2, strokeW);
 }
 
 void FreePitchLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height,
                                             float sliderPosProportional, float rotaryStartAngle,
                                             float rotaryEndAngle, juce::Slider& slider) {
+    using namespace FreePitchColors;
     auto bounds = juce::Rectangle<float>(static_cast<float>(x), static_cast<float>(y),
                                          static_cast<float>(width), static_cast<float>(height)).reduced(2.0f);
     float radius = std::min(bounds.getWidth(), bounds.getHeight()) * 0.5f;
@@ -194,155 +171,105 @@ void FreePitchLookAndFeel::drawRotarySlider(juce::Graphics& g, int x, int y, int
     float centreY = bounds.getCentreY();
 
     bool isHovered = slider.isMouseOverOrDragging();
-    bool isEnabled = slider.isEnabled();
+    bool isDown = slider.isMouseButtonDown();
 
-    const auto& p = s_currentPalette;
-
-    bool useAmber = slider.getProperties().contains("accentAmber") && static_cast<bool>(slider.getProperties()["accentAmber"]);
-    juce::Colour activeColor = useAmber ? p.accentAmber : p.accentCyan;
-
-    // 1. Debossed Concave Dish / Socket Well
+    // 1. Recessed dark outer track well (#0D0F12)
     juce::Rectangle<float> socketBounds(centreX - radius, centreY - radius, radius * 2.0f, radius * 2.0f);
-    drawNeumorphicSunken(g, socketBounds, radius, 2.5f);
+    drawNeumorphicSunken(g, socketBounds, radius, 2.2f);
 
-    // 2. Background Track Groove (Subtle recessed arc)
-    float trackRadius = radius - 3.5f;
+    // 2. Background track groove
+    float trackRadius = radius - 3.0f;
     if (trackRadius > 4.0f) {
         juce::Path bgArc;
         bgArc.addCentredArc(centreX, centreY, trackRadius, trackRadius, 0.0f, rotaryStartAngle, rotaryEndAngle, true);
-        g.setColour(p.panelBorder.withAlpha(0.45f));
+        g.setColour(outerKnobTrack);
         g.strokePath(bgArc, juce::PathStrokeType(3.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
     }
 
-    // 3. Active Illuminated Track Arc
+    // 3. Glowing #FF2E3B Value Arc with soft bloom (0x44FF2E3B)
     float currentAngle = rotaryStartAngle + sliderPosProportional * (rotaryEndAngle - rotaryStartAngle);
-    if (sliderPosProportional > 0.001f && trackRadius > 4.0f) {
+    if (sliderPosProportional > 0.002f && trackRadius > 4.0f) {
         juce::Path valArc;
         valArc.addCentredArc(centreX, centreY, trackRadius, trackRadius, 0.0f, rotaryStartAngle, currentAngle, true);
 
-        if (isEnabled) {
-            // Radiant soft bloom
-            g.setColour(activeColor.withAlpha(0.30f));
-            g.strokePath(valArc, juce::PathStrokeType(6.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
-        }
+        // Soft outer bloom
+        g.setColour(signalRedBloom);
+        g.strokePath(valArc, juce::PathStrokeType(6.5f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
 
-        g.setColour(isEnabled ? activeColor : p.textDim);
-        g.strokePath(valArc, juce::PathStrokeType(3.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
+        // Sharp value arc
+        g.setColour(signalRed);
+        g.strokePath(valArc, juce::PathStrokeType(2.8f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
     }
 
-    // 4. Pure Neumorphic Extruded Knob Button (Molded from same surface material)
-    float dialRadius = radius - 8.5f;
-    if (dialRadius > 6.0f) {
-        juce::Rectangle<float> dialBounds(centreX - dialRadius, centreY - dialRadius, dialRadius * 2.0f, dialRadius * 2.0f);
-
-        // Soft ambient drop shadow (bottom-right)
-        g.setColour(p.shadowDark);
-        g.fillEllipse(dialBounds.translated(2.2f, 2.2f));
-
-        // Soft specular highlight (top-left)
-        g.setColour(p.shadowLight);
-        g.fillEllipse(dialBounds.translated(-1.8f, -1.8f));
-
-        // Extruded knob cap body (Exact same material as panel)
-        g.setColour(isHovered ? p.panelRaised.brighter(0.03f) : p.panelRaised);
-        g.fillEllipse(dialBounds);
-
-        // Subtle 3D chamfer rim hairline
-        juce::ColourGradient dialRim(p.panelBorderLight, centreX - dialRadius, centreY - dialRadius,
-                                     p.panelBorder, centreX + dialRadius, centreY + dialRadius, false);
-        g.setGradientFill(dialRim);
-        g.drawEllipse(dialBounds, 1.0f);
-
-        // 5. Center Finger Dimple (Soft concave dish)
-        float dimpleRadius = dialRadius * 0.38f;
-        juce::Rectangle<float> dimpleBounds(centreX - dimpleRadius, centreY - dimpleRadius,
-                                            dimpleRadius * 2.0f, dimpleRadius * 2.0f);
-        drawNeumorphicSunken(g, dimpleBounds, dimpleRadius, 1.5f);
-
-        // 6. Minimalist Illuminated Indicator Pip
-        float pipDist = dialRadius * 0.70f;
-        float pipX = centreX + std::sin(currentAngle) * pipDist;
-        float pipY = centreY - std::cos(currentAngle) * pipDist;
-        float pipR = isHovered ? 2.6f : 2.0f;
-
-        if (isEnabled) {
-            // Subtle neon glow
-            g.setColour(activeColor.withAlpha(0.35f));
-            g.fillEllipse(pipX - pipR - 1.5f, pipY - pipR - 1.5f, (pipR + 1.5f) * 2.0f, (pipR + 1.5f) * 2.0f);
-
-            g.setColour(isHovered ? juce::Colours::white : activeColor);
-            g.fillEllipse(pipX - pipR, pipY - pipR, pipR * 2.0f, pipR * 2.0f);
-        } else {
-            g.setColour(p.textDim);
-            g.fillEllipse(pipX - pipR, pipY - pipR, pipR * 2.0f, pipR * 2.0f);
-        }
+    // 4. Machined Circular Cap
+    float capRadius = radius - 7.5f;
+    if (capRadius > 4.0f) {
+        juce::Rectangle<float> capBounds(centreX - capRadius, centreY - capRadius, capRadius * 2.0f, capRadius * 2.0f);
+        drawMachinedCap(g, capBounds, currentAngle, isHovered, isDown);
     }
 }
 
 void FreePitchLookAndFeel::drawComboBox(juce::Graphics& g, int width, int height, bool isButtonDown,
                                         int /*buttonX*/, int /*buttonY*/, int /*buttonW*/, int /*buttonH*/,
                                         juce::ComboBox& box) {
+    using namespace FreePitchColors;
     auto bounds = juce::Rectangle<float>(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height));
     bool isHovered = box.isMouseOver() || isButtonDown;
-    const auto& p = s_currentPalette;
 
-    if (isButtonDown) {
-        drawNeumorphicSunken(g, bounds, 6.0f, 2.5f);
-    } else {
-        drawNeumorphicRaised(g, bounds, 6.0f, 2.5f, isHovered);
+    // Recessed well for dropdown pill (#101215)
+    drawNeumorphicSunken(g, bounds, bounds.getHeight() * 0.5f, 2.0f);
+
+    if (isHovered) {
+        g.setColour(rimHighlight.withAlpha(0.6f));
+        g.drawRoundedRectangle(bounds.reduced(0.5f), bounds.getHeight() * 0.5f, 1.0f);
     }
 
-    // Clean modern chevron arrow on right
+    // Modern down-chevron arrow on right
     float arrowX = static_cast<float>(width) - 15.0f;
     float arrowY = static_cast<float>(height) * 0.5f;
     juce::Path arrow;
-    arrow.startNewSubPath(arrowX - 4.0f, arrowY - 2.5f);
-    arrow.lineTo(arrowX, arrowY + 2.5f);
-    arrow.lineTo(arrowX + 4.0f, arrowY - 2.5f);
+    arrow.startNewSubPath(arrowX - 3.5f, arrowY - 2.0f);
+    arrow.lineTo(arrowX, arrowY + 2.0f);
+    arrow.lineTo(arrowX + 3.5f, arrowY - 2.0f);
 
-    g.setColour(box.isEnabled() ? (isHovered ? p.accentCyan : p.textMuted) : p.textDim);
-    g.strokePath(arrow, juce::PathStrokeType(1.6f, juce::PathStrokeType::mitered, juce::PathStrokeType::rounded));
+    g.setColour(isHovered ? textPrimary : textSecondary);
+    g.strokePath(arrow, juce::PathStrokeType(1.5f, juce::PathStrokeType::mitered, juce::PathStrokeType::rounded));
 }
 
 void FreePitchLookAndFeel::drawToggleButton(juce::Graphics& g, juce::ToggleButton& button,
                                             bool shouldDrawButtonAsHighlighted, bool /*shouldDrawButtonAsDown*/) {
+    using namespace FreePitchColors;
     auto bounds = button.getLocalBounds().toFloat();
     bool isOn = button.getToggleState();
-    bool isEnabled = button.isEnabled();
-    const auto& p = s_currentPalette;
 
-    bool useAmber = button.getProperties().contains("accentAmber") && static_cast<bool>(button.getProperties()["accentAmber"]);
-    juce::Colour activeColor = useAmber ? p.accentAmber : p.indicatorInTune;
-
-    // Draw tactile circular LED pip
-    float pipSize = 8.5f;
+    // Tactile LED dot
+    float pipSize = 8.0f;
     float pipY = bounds.getCentreY();
-    drawTactileLed(g, 9.0f, pipY, pipSize * 0.5f, activeColor, isOn && isEnabled);
+    drawTactileLed(g, 9.0f, pipY, pipSize * 0.5f, signalRed, isOn);
 
-    // Typography
-    g.setColour(isOn ? p.textPrimary : (shouldDrawButtonAsHighlighted ? p.textSecondary : p.textMuted));
-    g.setFont(juce::FontOptions(11.5f, juce::Font::bold));
-    g.drawText(button.getButtonText(), 19, 0, button.getWidth() - 19, button.getHeight(),
+    // Tracked uppercase label
+    g.setColour(isOn ? textPrimary : (shouldDrawButtonAsHighlighted ? textSecondary : textDim));
+    g.setFont(juce::FontOptions(11.0f, juce::Font::bold));
+    g.drawText(button.getButtonText().toUpperCase(), 18, 0, button.getWidth() - 18, button.getHeight(),
                juce::Justification::centredLeft, true);
 }
 
 void FreePitchLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& button,
                                                 const juce::Colour& /*backgroundColour*/,
                                                 bool shouldDrawButtonAsHighlighted, bool shouldDrawButtonAsDown) {
+    using namespace FreePitchColors;
     auto bounds = button.getLocalBounds().toFloat();
     bool isOn = button.getToggleState();
     bool isPressed = shouldDrawButtonAsDown || isOn;
 
     if (isPressed) {
-        // Depressed into surface
-        drawNeumorphicSunken(g, bounds, 6.0f, 2.5f);
+        drawNeumorphicSunken(g, bounds, 5.0f, 2.5f);
         if (isOn) {
-            g.setColour(s_currentPalette.accentCyan.withAlpha(0.6f));
-            g.drawRoundedRectangle(bounds.reduced(0.5f), 6.0f, 1.0f);
+            g.setColour(signalRedBloom);
+            g.drawRoundedRectangle(bounds.reduced(0.5f), 5.0f, 1.0f);
         }
     } else {
-        // Raised extruded tile
-        drawNeumorphicRaised(g, bounds, 6.0f, 2.5f, shouldDrawButtonAsHighlighted);
+        drawNeumorphicRaised(g, bounds, 5.0f, 2.5f, shouldDrawButtonAsHighlighted);
     }
 }
 
@@ -357,37 +284,37 @@ void FreePitchLookAndFeel::drawPopupMenuItem(juce::Graphics& g, const juce::Rect
                                              const juce::String& shortcutKeyText,
                                              const juce::Drawable* icon, const juce::Colour* textColour) {
     juce::ignoreUnused(icon, shortcutKeyText, hasSubMenu);
-    const auto& p = s_currentPalette;
+    using namespace FreePitchColors;
 
     if (isSeparator) {
-        g.setColour(p.panelBorder);
+        g.setColour(rimHighlight.withAlpha(0.6f));
         g.fillRect(area.reduced(6, 0).withHeight(1));
         return;
     }
 
     if (isHighlighted && isActive) {
-        g.setColour((s_themeMode == ThemeMode::Dark) ? p.panelRaised.brighter(0.08f) : p.panelSunken);
+        g.setColour(cavityRecessed);
         g.fillRect(area.reduced(2, 1));
 
-        // Cyan left accent pill
-        g.setColour(p.accentCyan);
-        g.fillRect(area.getX() + 2, area.getY() + 2, 3, area.getHeight() - 4);
+        // Signal red left indicator pip
+        g.setColour(signalRed);
+        g.fillRect(area.getX() + 2, area.getY() + 3, 3, area.getHeight() - 6);
     }
 
-    juce::Colour textColor = isActive ? (isHighlighted ? p.accentCyan : p.textPrimary) : p.textDim;
+    juce::Colour textColor = isActive ? (isHighlighted ? signalRed : textPrimary) : textDim;
     if (textColour != nullptr) {
         textColor = *textColour;
     }
 
     g.setColour(textColor);
-    g.setFont(juce::FontOptions(12.5f));
+    g.setFont(juce::FontOptions(12.0f, juce::Font::bold));
 
     int leftMargin = isTicked ? 24 : 14;
     g.drawText(text, area.getX() + leftMargin, area.getY(), area.getWidth() - leftMargin - 10, area.getHeight(),
                juce::Justification::centredLeft, true);
 
     if (isTicked) {
-        g.setColour(p.accentCyan);
+        g.setColour(signalRed);
         juce::Path tick;
         float tx = static_cast<float>(area.getX()) + 9.0f;
         float ty = static_cast<float>(area.getCentreY());
@@ -399,33 +326,32 @@ void FreePitchLookAndFeel::drawPopupMenuItem(juce::Graphics& g, const juce::Rect
 }
 
 void FreePitchLookAndFeel::drawTooltip(juce::Graphics& g, const juce::String& text, int width, int height) {
+    using namespace FreePitchColors;
     auto bounds = juce::Rectangle<float>(0.0f, 0.0f, static_cast<float>(width), static_cast<float>(height));
-    const auto& p = s_currentPalette;
 
-    // Neumorphic dark glass floating badge
-    g.setColour(p.panelSunken.withAlpha(0.96f));
-    g.fillRoundedRectangle(bounds, 6.0f);
+    g.setColour(cavityRecessed.withAlpha(0.97f));
+    g.fillRoundedRectangle(bounds, 5.0f);
 
-    // Neon cyan hairline border with soft glow
-    g.setColour(p.accentCyan.withAlpha(0.55f));
-    g.drawRoundedRectangle(bounds.reduced(0.5f), 6.0f, 1.0f);
+    g.setColour(rimHighlight);
+    g.drawRoundedRectangle(bounds.reduced(0.5f), 5.0f, 1.0f);
 
-    // Crisp typography
-    g.setColour(p.textPrimary);
-    g.setFont(juce::FontOptions(11.5f));
-    g.drawFittedText(text, bounds.reduced(8.0f, 6.0f).toNearestInt(), juce::Justification::centredLeft, 6);
+    g.setColour(textPrimary);
+    g.setFont(juce::FontOptions(11.0f, juce::Font::bold));
+    g.drawFittedText(text, bounds.reduced(8.0f, 5.0f).toNearestInt(), juce::Justification::centredLeft, 4);
 }
 
 juce::Rectangle<int> FreePitchLookAndFeel::getTooltipBounds(const juce::String& tipText, juce::Point<int> screenPos,
                                                             juce::Rectangle<int> parentArea) {
-    juce::Font font(juce::FontOptions(11.5f));
-    int textWidth = font.getStringWidth(tipText);
+    juce::Font font(juce::FontOptions(11.0f, juce::Font::bold));
+    juce::GlyphArrangement ga;
+    ga.addLineOfText(font, tipText, 0.0f, 0.0f);
+    int textWidth = static_cast<int>(std::ceil(ga.getBoundingBox(0, -1, false).getWidth()));
 
-    int maxWidth = std::min(320, parentArea.getWidth() - 20);
-    int width = std::min(maxWidth, std::max(140, textWidth + 24));
+    int maxWidth = std::min(300, parentArea.getWidth() - 20);
+    int width = std::min(maxWidth, std::max(120, textWidth + 20));
 
     int numLines = (textWidth / (width - 16)) + 1;
-    int height = std::max(28, numLines * 16 + 14);
+    int height = std::max(26, numLines * 15 + 12);
 
     int x = screenPos.x + 12;
     int y = screenPos.y + 16;
@@ -439,7 +365,7 @@ juce::Rectangle<int> FreePitchLookAndFeel::getTooltipBounds(const juce::String& 
 }
 
 juce::Font FreePitchLookAndFeel::getLabelFont(juce::Label&) {
-    return juce::Font(juce::FontOptions(11.5f));
+    return juce::Font(juce::FontOptions(11.0f, juce::Font::bold));
 }
 
 juce::Font FreePitchLookAndFeel::getComboBoxFont(juce::ComboBox&) {

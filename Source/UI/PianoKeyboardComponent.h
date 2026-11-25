@@ -6,7 +6,7 @@
 #include <functional>
 
 class PianoKeyboardComponent : public juce::Component,
-                               public juce::SettableTooltipClient {
+                                public juce::SettableTooltipClient {
 public:
     PianoKeyboardComponent();
     ~PianoKeyboardComponent() override = default;
@@ -35,8 +35,9 @@ private:
     int m_targetMidi = -1;
     bool m_isVoiced = false;
 
-    // Helper functions
     static bool isBlackKey(int midiNote);
     int getMidiFromPosition(float x, float y) const;
     bool isNoteInScale(int midiNote) const;
+
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(PianoKeyboardComponent)
 };
