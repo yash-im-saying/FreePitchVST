@@ -2,6 +2,24 @@
 
 #include <juce_gui_basics/juce_gui_basics.h>
 
+namespace FreePitchColors {
+    inline const juce::Colour bgChassis       { 0xFF16181C }; // Chassis Background #16181C
+    inline const juce::Colour surfaceElevated { 0xFF1E2127 }; // Elevated Surface (Knob Caps, Cards, Active Pills) #1E2127
+    inline const juce::Colour surfaceGradTop  { 0xFF22262D }; // Surface Gradient Top-Left #22262D
+    inline const juce::Colour surfaceGradBot  { 0xFF191C21 }; // Surface Gradient Bottom-Right #191C21
+    inline const juce::Colour cavityRecessed  { 0xFF101215 }; // Recessed Cavity (Pitch Well, Dropdowns, Troughs) #101215
+    inline const juce::Colour textPrimary     { 0xFFF2F4F8 }; // Primary Text & Active Ticks #F2F4F8
+    inline const juce::Colour textSecondary   { 0xFF7E8492 }; // Secondary Text & Inactive Markers #7E8492
+    inline const juce::Colour textDim         { 0xFF424754 }; // Dim Text / Unlit Markers
+    inline const juce::Colour signalRed       { 0xFFFF2E3B }; // Signal Accent / Active LED / Value Arc #FF2E3B
+    inline const juce::Colour signalRedBloom  { 0x44FF2E3B }; // Soft Outer Bloom 0x44FF2E3B
+    inline const juce::Colour rimHighlight    { 0xFF2A2F3A }; // Neumorphic Rim Highlight (Top-Left) #2A2F3A
+    inline const juce::Colour deepShadow      { 0xFF090A0C }; // Neumorphic Deep Shadow (Bottom-Right) #090A0C
+    inline const juce::Colour innerCavityDark { 0xFF08090B }; // Cavity Inner Shadow Top-Left #08090B
+    inline const juce::Colour innerCavityRim  { 0xFF262A33 }; // Cavity Inner Rim Bottom-Right 1px #262A33
+    inline const juce::Colour outerKnobTrack  { 0xFF0D0F12 }; // Recessed 3px Dark Outer Track #0D0F12
+}
+
 class FreePitchLookAndFeel : public juce::LookAndFeel_V4 {
 public:
     enum class ThemeMode {
@@ -9,48 +27,18 @@ public:
         Light
     };
 
-    struct ThemePalette {
-        juce::Colour bgBase;             // Main chassis background
-        juce::Colour panelRaised;        // Extruded neumorphic card/surface
-        juce::Colour panelSunken;        // Inset cavity / debossed well
-        juce::Colour panelBorder;        // Soft perimeter hairline
-        juce::Colour panelBorderLight;   // Top-left specular hairline
-        juce::Colour shadowDark;         // Ambient soft drop shadow (bottom-right)
-        juce::Colour shadowLight;        // Ambient soft highlight shadow (top-left)
-        juce::Colour innerShadowDark;    // Inset cavity dark shadow (top-left)
-        juce::Colour innerShadowLight;   // Inset cavity highlight (bottom-right)
-
-        // Text
-        juce::Colour textPrimary;        // Hero text / values
-        juce::Colour textSecondary;      // Labels / titles
-        juce::Colour textMuted;          // Subdued / descriptions
-        juce::Colour textDim;            // Disabled / inactive
-
-        // Accents & Hardware Indicators
-        juce::Colour accentCyan;         // Primary neon cyan (pitch / active)
-        juce::Colour accentCyanGlow;     // Primary halo
-        juce::Colour accentAmber;        // Secondary gold/amber (quantize / correction)
-        juce::Colour accentAmberGlow;    // Secondary halo
-        juce::Colour indicatorInTune;    // Emerald green (in-tune / powered ON)
-        juce::Colour indicatorSharp;     // Orange
-        juce::Colour indicatorFlat;      // Sky blue
-        juce::Colour indicatorWarning;   // Crimson alert
-    };
-
     FreePitchLookAndFeel();
     ~FreePitchLookAndFeel() override = default;
 
-    // Theme Management
     void setThemeMode(ThemeMode mode);
     ThemeMode getThemeMode() const { return m_themeMode; }
     bool isDarkTheme() const { return m_themeMode == ThemeMode::Dark; }
+    static bool isDark() { return true; }
 
-    static const ThemePalette& getPalette() { return s_currentPalette; }
-    static bool isDark() { return s_themeMode == ThemeMode::Dark; }
-
-    // Pure Neumorphic Primitives
+    // --- Neumorphic Tactile Primitives ---
     static void drawNeumorphicRaised(juce::Graphics& g, juce::Rectangle<float> bounds,
-                                     float cornerRadius, float depth = 4.0f, bool isHovered = false);
+                                     float cornerRadius, float depth = 4.0f,
+                                     bool isHovered = false, bool isPressed = false);
 
     static void drawNeumorphicSunken(juce::Graphics& g, juce::Rectangle<float> bounds,
                                      float cornerRadius, float depth = 3.0f);
@@ -58,34 +46,16 @@ public:
     static void drawTactileLed(juce::Graphics& g, float cx, float cy, float radius,
                                const juce::Colour& color, bool isOn);
 
-    // Dynamically updated static colors for backward compatibility
-    static inline juce::Colour kBackgroundDark    = juce::Colour(0xFF181B20);
-    static inline juce::Colour kPanelDark         = juce::Colour(0xFF14161A);
-    static inline juce::Colour kPanelCard         = juce::Colour(0xFF1E2229);
-    static inline juce::Colour kPanelCardHover    = juce::Colour(0xFF242932);
-    static inline juce::Colour kPanelBorder       = juce::Colour(0xFF262C36);
-    static inline juce::Colour kPanelBorderLight  = juce::Colour(0xFF303846);
-    static inline juce::Colour kPanelBorderGlow   = juce::Colour(0x6600E5FF);
+    static void drawMachinedCap(juce::Graphics& g, juce::Rectangle<float> dialBounds,
+                                float currentAngle, bool isHovered, bool isPressed);
 
-    static inline juce::Colour kTextWhite         = juce::Colour(0xFFF8FAFC);
-    static inline juce::Colour kTextLight         = juce::Colour(0xFFCBD5E1);
-    static inline juce::Colour kTextMuted         = juce::Colour(0xFF8492A6);
-    static inline juce::Colour kTextDim           = juce::Colour(0xFF475569);
+    static void drawRecessedWell(juce::Graphics& g, juce::Rectangle<float> bounds,
+                                 float cornerRadius);
 
-    static inline juce::Colour kAccentCyan        = juce::Colour(0xFF00E5FF);
-    static inline juce::Colour kAccentCyanGlow    = juce::Colour(0x4000E5FF);
-    static inline juce::Colour kAccentAmber       = juce::Colour(0xFFFFB300);
-    static inline juce::Colour kAccentAmberGlow   = juce::Colour(0x40FFB300);
-    static inline juce::Colour kIndicatorInTune   = juce::Colour(0xFF00E676);
-    static inline juce::Colour kIndicatorSharp    = juce::Colour(0xFFFB923C);
-    static inline juce::Colour kIndicatorFlat     = juce::Colour(0xFF38BDF8);
-    static inline juce::Colour kIndicatorWarning  = juce::Colour(0xFFEF4444);
+    static void drawPillBadge(juce::Graphics& g, juce::Rectangle<float> bounds,
+                              const juce::String& text, bool isHovered = false);
 
-    static inline juce::Colour kKnobBodyTop       = juce::Colour(0xFF1E2229);
-    static inline juce::Colour kKnobBodyBottom    = juce::Colour(0xFF181B20);
-    static inline juce::Colour kKnobRim           = juce::Colour(0xFF2A313D);
-
-    // JUCE LookAndFeel Overrides
+    // --- JUCE LookAndFeel Overrides ---
     void drawRotarySlider(juce::Graphics& g, int x, int y, int width, int height,
                           float sliderPosProportional, float rotaryStartAngle,
                           float rotaryEndAngle, juce::Slider& slider) override;
@@ -115,12 +85,27 @@ public:
     juce::Font getLabelFont(juce::Label&) override;
     juce::Font getComboBoxFont(juce::ComboBox&) override;
 
+    // Backward-compatibility aliases for legacy code
+    static inline juce::Colour kBackgroundDark    = FreePitchColors::bgChassis;
+    static inline juce::Colour kPanelDark         = FreePitchColors::cavityRecessed;
+    static inline juce::Colour kPanelCard         = FreePitchColors::surfaceElevated;
+    static inline juce::Colour kPanelCardHover    = juce::Colour(0xFF242932);
+    static inline juce::Colour kPanelBorder       = FreePitchColors::rimHighlight;
+    static inline juce::Colour kPanelBorderLight  = juce::Colour(0xFF353B47);
+    static inline juce::Colour kPanelBorderGlow   = FreePitchColors::signalRedBloom;
+    static inline juce::Colour kTextWhite         = FreePitchColors::textPrimary;
+    static inline juce::Colour kTextLight         = FreePitchColors::textPrimary;
+    static inline juce::Colour kTextMuted         = FreePitchColors::textSecondary;
+    static inline juce::Colour kTextDim           = FreePitchColors::textDim;
+    static inline juce::Colour kAccentCyan        = FreePitchColors::signalRed;
+    static inline juce::Colour kAccentCyanGlow    = FreePitchColors::signalRedBloom;
+    static inline juce::Colour kAccentAmber       = FreePitchColors::signalRed;
+    static inline juce::Colour kAccentAmberGlow   = FreePitchColors::signalRedBloom;
+    static inline juce::Colour kIndicatorInTune   = FreePitchColors::signalRed;
+    static inline juce::Colour kIndicatorSharp    = FreePitchColors::signalRed;
+    static inline juce::Colour kIndicatorFlat     = FreePitchColors::signalRed;
+    static inline juce::Colour kIndicatorWarning  = FreePitchColors::signalRed;
+
 private:
     ThemeMode m_themeMode = ThemeMode::Dark;
-    static inline ThemeMode s_themeMode = ThemeMode::Dark;
-    static inline ThemePalette s_currentPalette;
-
-    static ThemePalette makeDarkPalette();
-    static ThemePalette makeLightPalette();
-    void applyPaletteToColours();
 };

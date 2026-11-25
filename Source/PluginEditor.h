@@ -6,8 +6,9 @@
 #include "UI/FreePitchLookAndFeel.h"
 #include "UI/CircularPitchMeter.h"
 #include "UI/PianoKeyboardComponent.h"
-#include "UI/EFXDrawerComponent.h"
+#include "UI/EfxRackComponent.h"
 #include "UI/RotaryKnob.h"
+#include "UI/TactileWidgets.h"
 
 class FreePitchAudioProcessorEditor : public juce::AudioProcessorEditor,
                                       public juce::Timer {
@@ -23,38 +24,34 @@ private:
     FreePitchAudioProcessor& m_processor;
     FreePitchLookAndFeel m_lookAndFeel;
 
-    // Integrated Studio Tooltip Window
     juce::TooltipWindow m_tooltipWindow { this, 400 };
 
-    // --- Top Bar Components ---
+    // --- Header Bar Components ---
     juce::Label m_titleLabel;
-    juce::Label m_subtitleLabel;
-    juce::Label m_versionLabel;
-    juce::TextButton m_themeToggleBtn { "DARK" };
+    juce::Label m_vst3Badge;
 
-    // Presets
-    juce::TextButton m_prevPresetBtn { "<" };
-    juce::TextButton m_nextPresetBtn { ">" };
-    juce::ComboBox   m_presetBox;
-    juce::TextButton m_savePresetBtn { "SAVE" };
-    juce::TextButton m_abCompareBtn  { "A / B" };
+    // Preset Selector
+    std::unique_ptr<HeaderPillSelector> m_presetSelector;
 
-    // Latency & Mode Switch
-    juce::ToggleButton m_lookaheadToggle { "LOOKAHEAD" };
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> m_lookaheadAttachment;
-    juce::Label m_latencyLabel;
-
-    // Key & Scale
-    juce::ComboBox m_keyRootBox;
-    juce::ComboBox m_scaleTypeBox;
+    // Key & Scale Selectors
+    std::unique_ptr<HeaderPillSelector> m_keyScaleSelector;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> m_keyRootAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> m_scaleTypeAttachment;
 
-    // Master EFX Bypass
-    juce::ToggleButton m_masterEfxToggle { "MASTER EFX" };
+    // Latency Toggle (TRACK vs LOOKAHEAD)
+    std::unique_ptr<SegmentedLatencyToggle> m_latencyToggle;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> m_lookaheadAttachment;
+
+    // Vocal Mode Selector
+    std::unique_ptr<HeaderPillSelector> m_vocalModeSelector;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> m_vocalModeAttachment;
+
+    // Master Bypass Button
+    std::unique_ptr<CircularBypassButton> m_bypassButton;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> m_masterEfxAttachment;
 
-    // --- Left Control Bank (Tuning Dynamics) ---
+    // --- Main Pitch Engine (Left 30% / Center 40% / Right 30%) ---
+    // Left Column: Primary Tuning Knobs + Choosy Tracking Pill
     std::unique_ptr<RotaryKnob> m_retuneSpeedKnob;
     std::unique_ptr<RotaryKnob> m_humanizeKnob;
     std::unique_ptr<RotaryKnob> m_flexTuneKnob;
@@ -62,35 +59,27 @@ private:
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> m_humanizeAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> m_flexTuneAttachment;
 
-    // --- Center Focal Point (Pitch Radar) ---
-    CircularPitchMeter m_circularMeter;
-    juce::ComboBox m_vocalModeBox;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> m_vocalModeAttachment;
-    juce::ToggleButton m_choosyTrackingToggle { "CHOOSY TRACKING" };
+    std::unique_ptr<NeumorphicTogglePill> m_choosyTrackingPill;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> m_choosyTrackingAttachment;
 
-    // --- Right Control Bank (Tone & Modular EFX) ---
-    std::unique_ptr<RotaryKnob> m_pitchShiftKnob;
-    juce::Label m_formantsTitleLabel;
-    juce::ToggleButton m_formantsToggle { "PRESERVE" };
-    juce::Label m_formantsSubLabel;
-    std::unique_ptr<RotaryKnob> m_formantShiftKnob;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> m_pitchShiftAttachment;
+    // Center Focal Point: Circular Pitch Meter
+    CircularPitchMeter m_pitchMeter;
+
+    // Right Column: Secondary Tone/Pitch Knobs + Formant Lock Pill
+    std::unique_ptr<RotaryKnob> m_formantKnob;
+    std::unique_ptr<RotaryKnob> m_transposeKnob;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> m_formantAttachment;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> m_transposeAttachment;
+
+    std::unique_ptr<NeumorphicTogglePill> m_formantLockPill;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> m_formantsAttachment;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> m_formantShiftAttachment;
 
-    // Voiced Confidence Meter
-    float m_smoothConfidence = 0.0f;
-    float m_smoothInputRms = -100.0f;
-    juce::Rectangle<float> m_confidenceMeterBounds;
-
-    // Modular Post-Pitch EFX Rack Bay
-    EFXDrawerComponent m_efxDrawer;
+    // --- Post-Pitch EFX Rack ---
+    EfxRackComponent m_efxRack;
 
     // --- Bottom Piano Keyboard ---
     PianoKeyboardComponent m_pianoKeyboard;
 
-    void updateThemeUI();
     void updatePresetBox();
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(FreePitchAudioProcessorEditor)
